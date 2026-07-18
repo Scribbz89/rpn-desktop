@@ -22,7 +22,8 @@ jobs:
       - name: Build Windows
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --win
+          GH_TOKEN: ""
+        run: npx electron-builder --win --publish never
 
       - name: Deploy to rpn-website
         uses: actions/checkout@v4
@@ -59,7 +60,8 @@ jobs:
       - name: Build Linux
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --linux
+          GH_TOKEN: ""
+        run: npx electron-builder --linux --publish never
 
       - name: Deploy to rpn-website
         uses: actions/checkout@v4
