@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Contacts</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="community-auth.html" style="color:#6dbf5a;font-size:13px;">&#8592; Community</a></div>
+    <h2>RPN Contacts</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Send contact requests to other members. Both sides must accept before you can share group pins.</p>
+
+    <!-- Pending incoming requests -->
+    <div id="requestsSection" style="background:#1a2a1a;border:1px solid #3a5c2e;border-radius:6px;padding:12px 16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="color:#6dbf5a;font-weight:600;">📬 Incoming Contact Requests</div>
+            <button onclick="loadRequests()" style="background:none;border:1px solid #3a5c2e;color:#7a8f78;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;">Refresh</button>
+        </div>
+        <div id="requestsList"><span style="color:#7a8f78;font-size:13px;">Checking...</span></div>
+    </div>
+
+    <!-- Sent pending requests -->
+    <div id="sentBanner" style="display:none;background:#1a2a1a;border:1px solid #d4a017;border-radius:6px;padding:12px 16px;margin-bottom:16px;">
+        <div style="color:#d4a017;font-weight:600;margin-bottom:10px;">⏳ Sent — Awaiting Response</div>
+        <div id="sentList"></div>
+    </div>
+
+    <!-- Search -->
+    <div class="add-form" style="max-width:520px;margin-bottom:20px;">
+        <h3>Find a Member</h3>
+        <input type="text" id="searchInput" placeholder="Search by name or callsign..." style="width:100%;margin-bottom:8px;">
+        <button class="btn-primary" id="searchBtn" style="width:100%;">Search</button>
+        <div id="searchResults" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- My Contacts -->
+    <div class="add-form" style="max-width:520px;">
+        <h3>My Contacts</h3>
+        <div id="contactsList"></div>
+    </div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+let myContacts = [];
+let pendingRequests = [];
+let sentRequests = [];
+
+async function init() {
+    renderNav('more');
+    registerPushNotifications();
+    if (!communityToken()) { window.location.href = 'community-auth.html'; return; }
+    document.getElementById('searchBtn').addEventListener('click', doSearch);
+    document.getElementById('searchResults').addEventListener('click', function(e) {
+        const btn = e.target.closest('.add-contact-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const memberId = parseInt(btn.dataset.memberId);
+        sendRequest(memberId, btn);
+    });
+    await Promise.all([loadContacts(), loadRequests(), loadSentRequests()]);
+}
+
+async function loadSentRequests() {
+    try {
+        const sent = await communityGetSentContactRequests();
+        sentRequests = sent;
+        const banner = document.getElementById('sentBanner');
+        if (!sent.length) { banner.style.display = 'none'; return; }
+        banner.style.display = '';
+        document.getElementById('sentList').innerHTML = sent.map(r => {
+            const cs = [r.rpn_callsign, r.callsign].filter(Boolean).join(' / ');
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div>
+                    <div style="font-weight:600;color:#d4d9d4;">${escHtml(r.name)}</div>
+                    ${cs ? `<div style="color:#6dbf5a;font-size:12px;">${escHtml(cs)}</div>` : ''}
+                    ${r.region ? `<div style="color:#7a8f78;font-size:12px;">📍 ${escHtml(r.region)}</div>` : ''}
+                </div>
+                <button onclick="cancelRequest(${r.id})" style="background:none;border:1px solid #c0392b;color:#c0392b;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Cancel</button>
+            </div>`;
+        }).join('');
+    } catch(e) {}
+}
+
+async function cancelRequest(requestId) {
+    if (!confirm('Cancel this contact request?')) return;
+    try {
+        await communityCancelContactRequest(requestId);
+        await loadSentRequests();
+    } catch(e) { alert(e.message); }
+}
+
+async function loadRequests() {
+    const listEl = document.getElementById('requestsList');
+    listEl.innerHTML = '<span style="color:#7a8f78;font-size:13px;">Checking...</span>';
+    try {
+        pendingRequests = await communityGetContactRequests();
+        if (pendingRequests.length) {
+            listEl.innerHTML = pendingRequests.map(r => {
+                const cs = [r.rpn_callsign, r.callsign].filter(Boolean).join(' / ');
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary);">${escHtml(r.name || r.username || 'Unknown')}</div>
+                        ${cs ? `<div style="color:var(--accent);font-size:12px;">${escHtml(cs)}</div>` : ''}
+                        ${r.region ? `<div style="color:var(--text-muted);font-size:12px;">📍 ${escHtml(r.region)}</div>` : ''}
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="acceptRequest(${r.id})" style="background:var(--accent);border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;">Accept</button>
+                        <button onclick="declineRequest(${r.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Decline</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            listEl.innerHTML = '<p style="color:#7a8f78;font-size:13px;margin:0;">No pending requests.</p>';
+        }
+    } catch(e) {
+        listEl.innerHTML = '<p style="color:var(--red);font-size:13px;margin:0;">Error: ' + escHtml(e.message) + '</p>';
+    }
+}
+
+async function loadContacts() {
+    try {
+        myContacts = await communityGetContacts();
+        renderContacts();
+    } catch(e) {
+        document.getElementById('contactsList').innerHTML = '<p style="color:var(--red);">Could not load contacts.</p>';
+    }
+}
+
+function renderContacts() {
+    const el = document.getElementById('contactsList');
+    if (!myContacts.length) {
+        el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No contacts yet. Search for members above to send a request.</p>';
+        return;
+    }
+    el.innerHTML = myContacts.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+                <div style="font-weight:600;color:var(--text-primary);">${escHtml(c.name)}</div>
+                ${[c.rpn_callsign, c.callsign].filter(Boolean).length ? `<div style="color:var(--accent);font-size:12px;">${escHtml([c.rpn_callsign, c.callsign].filter(Boolean).join(' / '))}</div>` : ''}
+                ${c.region ? `<div style="color:var(--text-muted);font-size:12px;">📍 ${escHtml(c.region)}${c.country ? ', '+escHtml(c.country) : ''}</div>` : ''}
+                ${c.radios ? `<div style="color:var(--text-muted);font-size:12px;">📻 ${escHtml(c.radios)}</div>` : ''}
+            </div>
+            <button onclick="removeContact(${c.id})" style="background:var(--red);border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Remove</button>
+        </div>
+    `).join('');
+}
+
+async function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('searchBtn');
+    btn.textContent = '...'; btn.disabled = true;
+    try {
+        const results = await communitySearchMembers(q);
+        renderSearchResults(results);
+    } catch(e) {
+        document.getElementById('searchResults').innerHTML = `<p style="color:var(--red);font-size:13px;">${e.message}</p>`;
+    } finally {
+        btn.textContent = 'Search'; btn.disabled = false;
+    }
+}
+
+function renderSearchResults(results) {
+    const el = document.getElementById('searchResults');
+    if (!results.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No members found.</p>'; return; }
+    const contactIds = myContacts.map(c => c.contact_id);
+    const me = communityUser();
+    el.innerHTML = results.map(m => {
+        if (me && m.id === me.id) return ''; // skip yourself
+        const alreadyContact = contactIds.includes(m.id);
+        const requestPending = sentRequests.some(r => r.to_id === m.id) || pendingRequests.some(r => r.from_id === m.id);
+        const cs = [m.rpn_callsign, m.callsign].filter(Boolean).join(' / ');
+        let actionHtml;
+        if (alreadyContact) {
+            actionHtml = `<span style="color:var(--accent);font-size:12px;font-weight:600;">✓ Contact</span>`;
+        } else if (requestPending) {
+            actionHtml = `<span style="color:#d4a017;font-size:12px;font-weight:600;">⏳ Pending</span>`;
+        } else {
+            actionHtml = `<button data-member-id="${m.id}" class="add-contact-btn" style="background:var(--accent);border:none;color:#000;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;">+ Add</button>`;
+        }
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+                <div style="font-weight:600;color:var(--text-primary);">${escHtml(m.name)}</div>
+                ${cs ? `<div style="color:var(--accent);font-size:12px;">${escHtml(cs)}</div>` : ''}
+                ${m.region ? `<div style="color:var(--text-muted);font-size:12px;">📍 ${escHtml(m.region)}${m.country ? ', '+escHtml(m.country) : ''}</div>` : ''}
+            </div>
+            ${actionHtml}
+        </div>`;
+    }).join('');
+}
+
+async function sendRequest(memberId, btn) {
+    btn.textContent = '...'; btn.disabled = true;
+    try {
+        await communityAddContact(memberId);
+        btn.textContent = '⏳ Sent';
+        btn.style.background = 'none';
+        btn.style.border = '1px solid var(--accent)';
+        btn.style.color = 'var(--accent)';
+    } catch(e) {
+        alert('Could not send request: ' + e.message);
+        btn.textContent = '+ Add'; btn.disabled = false;
+    }
+}
+
+async function acceptRequest(requestId) {
+    try {
+        await communityAcceptContactRequest(requestId);
+        await Promise.all([loadContacts(), loadRequests()]);
+    } catch(e) { alert(e.message); }
+}
+
+async function declineRequest(requestId) {
+    try {
+        await communityDeclineContactRequest(requestId);
+        await loadRequests();
+    } catch(e) { alert(e.message); }
+}
+
+async function removeContact(contactRowId) {
+    if (!confirm('Remove this contact?')) return;
+    try {
+        await communityRemoveContact(contactRowId);
+        await loadContacts();
+    } catch(e) { alert(e.message); }
+}
+
+init();
+</script>
+</body>
+</html>
+

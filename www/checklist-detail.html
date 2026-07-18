@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Checklist</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main class="checklist-detail">
+    <div id="pageContent"><p class="empty">Loading...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const listId = params.get('id');
+let _checklist = null;
+let _isCustom = false;
+let _builtins = [];
+
+function init() {
+    renderNav('checklists');
+    loadJSON('data/checklists.json').then(data => {
+        _builtins = data;
+        let cl = data.find(c => c.id === listId);
+        const customData = loadCustomChecklists();
+        if (!cl) {
+            cl = (customData.custom_checklists || []).find(c => c.id === listId);
+            _isCustom = true;
+        }
+        if (!cl) { document.getElementById('pageContent').innerHTML = '<p class="empty">Checklist not found. <a href="checklists.html">Back</a></p>'; return; }
+        _checklist = cl;
+        renderPage();
+    });
+}
+
+function renderPage() {
+    const progress = loadProgress();
+    const skipped = loadSkipped();
+    const customData = loadCustomChecklists();
+    const allNotes = loadChecklistNotes();
+    const listNotes = allNotes[listId] || {};
+    const reviews = loadChecklistReviews();
+    const lastReviewed = reviews[listId] || null;
+    const items = mergeChecklist(_checklist, customData.overrides || {}, progress, skipped);
+    const active = items.filter(i => !i.skipped);
+    const done = active.filter(i => i.checked).length;
+    const total = active.length;
+    const skippedCount = items.length - active.length;
+    const pct = total > 0 ? Math.round(done/total*100) : 0;
+    const fillClass = pct >= 100 ? 'complete' : pct > 0 ? 'partial' : '';
+
+    const itemsHtml = items.map((item, idx) => {
+        const isCustomItem = item.custom;
+        const note = listNotes[idx] || '';
+        if (item.skipped) {
+            return `<div class="check-row-wrap" style="opacity:0.45;">
+                <div class="check-row" style="cursor:default;flex:1;">
+                    <span class="check-box" style="font-size:10px;color:#556655;">N/A</span>
+                    <span class="check-text" style="text-decoration:line-through;color:#556655;">${escHtml(item.text)}</span>
+                </div>
+                <button onclick="toggleSkip(${idx})" title="Undo N/A"
+                    style="background:none;border:1px solid #2a4a2a;color:#556655;font-size:11px;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Undo</button>
+            </div>`;
+        }
+        return `<div class="check-row-wrap" style="flex-direction:column;align-items:stretch;gap:4px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <button class="check-row ${item.checked?'checked':''}" onclick="toggle(${idx})" style="flex:1;">
+                    <span class="check-box">${item.checked?'&#10003;':''}</span>
+                    <span class="check-text">${escHtml(item.text)}</span>
+                </button>
+                <button onclick="toggleNote(${idx})" title="Add note/evidence"
+                    style="background:none;border:1px solid ${note?'#3a5c2e':'#2a4a2a'};color:${note?'#6dbf5a':'#4a5e48'};font-size:11px;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Note</button>
+                <button onclick="toggleSkip(${idx})" title="Mark as not applicable"
+                    style="background:none;border:1px solid #2a4a2a;color:#4a5e48;font-size:11px;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;flex-shrink:0;">N/A</button>
+                ${isCustomItem ? `<button class="btn-delete-item" onclick="deleteCustomItem(${idx})" title="Remove">&#10005;</button>` : ''}
+            </div>
+            <div id="note-area-${idx}" style="display:${note?'flex':'none'};gap:6px;padding-left:32px;">
+                <input type="text" id="note-input-${idx}" value="${escHtml(note)}" placeholder="Add note or evidence..."
+                    style="flex:1;background:#0f1210;border:1px solid #2e3d2c;color:#d4d9d4;padding:6px 10px;border-radius:4px;font-size:12px;font-family:inherit;"
+                    onkeydown="if(event.key==='Enter')saveNote(${idx})">
+                <button onclick="saveNote(${idx})"
+                    style="background:#3a5c2e;border:none;color:#d4d9d4;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;">Save</button>
+                ${note ? `<button onclick="clearNote(${idx})" style="background:none;border:1px solid #2a4a2a;color:#4a5e48;padding:6px 10px;border-radius:4px;font-size:12px;cursor:pointer;">Clear</button>` : ''}
+            </div>
+            ${note ? `<div style="padding-left:32px;font-size:11px;color:#7a8f78;font-style:italic;">${escHtml(note)}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    const reviewedHtml = lastReviewed
+        ? `<span style="font-size:12px;color:#7a8f78;">Last reviewed: ${lastReviewed}</span>`
+        : `<span style="font-size:12px;color:#4a5e48;">Not yet reviewed</span>`;
+
+    document.getElementById('pageContent').innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;flex-wrap:wrap;">
+            <a href="checklists.html" style="color:#6dbf5a;font-size:13px;">&#8592; All Lists</a>
+        </div>
+        <h2 style="margin-top:12px;">${escHtml(_checklist.name)}</h2>
+        ${_checklist.description ? `<p class="form-hint">${escHtml(_checklist.description)}</p>` : ''}
+        <div class="detail-progress">
+            <span class="detail-progress-label">${done} of ${total} items complete (${pct}%)${skippedCount > 0 ? ` &middot; ${skippedCount} marked N/A` : ''}</span>
+            <div class="progress-bar-wrap large"><div class="progress-bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="checklist-items">${itemsHtml || '<p class="empty">No items yet. Add one below.</p>'}</div>
+        <div class="add-item-form">
+            <input type="text" id="newItemInput" placeholder="Add an item..." onkeydown="if(event.key==='Enter')addItem()">
+            <button onclick="addItem()">Add</button>
+        </div>
+        <div class="checklist-actions">
+            <button class="btn-reset" onclick="resetList()">Reset All</button>
+            <button onclick="toggleSkipList()" id="skipListBtn"
+                style="background:none;border:1px solid #2a4a2a;color:#4a5e48;font-size:13px;padding:8px 14px;border-radius:6px;cursor:pointer;">
+                ${loadSkippedLists().includes(listId) ? 'Undo N/A List' : 'Mark List N/A'}
+            </button>
+            ${_isCustom ? `<button class="btn-delete-checklist" onclick="deleteList()">Delete List</button>` : ''}
+        </div>
+        <div style="margin-top:20px;padding:14px;background:#141c12;border:1px solid #2e3d2c;border-radius:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            ${reviewedHtml}
+            <button onclick="markReviewed()"
+                style="background:#3a5c2e;border:none;color:#d4d9d4;padding:8px 16px;border-radius:5px;font-size:13px;cursor:pointer;">Mark as Reviewed</button>
+        </div>
+    `;
+}
+
+function toggle(idx) {
+    const progress = loadProgress();
+    const customData = loadCustomChecklists();
+    const checked = new Set(progress[listId] || []);
+    if (checked.has(idx)) checked.delete(idx); else checked.add(idx);
+    progress[listId] = [...checked];
+    saveProgress(progress);
+    renderPage();
+}
+
+function toggleSkip(idx) {
+    const skipped = loadSkipped();
+    const skip = new Set(skipped[listId] || []);
+    if (skip.has(idx)) {
+        skip.delete(idx);
+    } else {
+        skip.add(idx);
+        // Also uncheck if skipping
+        const progress = loadProgress();
+        const checked = new Set(progress[listId] || []);
+        checked.delete(idx);
+        progress[listId] = [...checked];
+        saveProgress(progress);
+    }
+    skipped[listId] = [...skip];
+    saveSkipped(skipped);
+    renderPage();
+}
+
+function toggleNote(idx) {
+    const area = document.getElementById('note-area-' + idx);
+    if (!area) return;
+    area.style.display = area.style.display === 'none' ? 'flex' : 'none';
+    if (area.style.display === 'flex') {
+        const inp = document.getElementById('note-input-' + idx);
+        if (inp) inp.focus();
+    }
+}
+
+function saveNote(idx) {
+    const inp = document.getElementById('note-input-' + idx);
+    if (!inp) return;
+    const val = inp.value.trim();
+    const allNotes = loadChecklistNotes();
+    allNotes[listId] = allNotes[listId] || {};
+    if (val) allNotes[listId][idx] = val;
+    else delete allNotes[listId][idx];
+    saveChecklistNotes(allNotes);
+    renderPage();
+}
+
+function clearNote(idx) {
+    const allNotes = loadChecklistNotes();
+    allNotes[listId] = allNotes[listId] || {};
+    delete allNotes[listId][idx];
+    saveChecklistNotes(allNotes);
+    renderPage();
+}
+
+function markReviewed() {
+    markChecklistReviewed(listId);
+    renderPage();
+}
+
+function addItem() {
+    const input = document.getElementById('newItemInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const customData = loadCustomChecklists();
+    customData.overrides = customData.overrides || {};
+    customData.overrides[listId] = customData.overrides[listId] || [];
+    customData.overrides[listId].push(text);
+
+    if (_isCustom) {
+        const cl = (customData.custom_checklists || []).find(c => c.id === listId);
+        if (cl) cl.items.push(text);
+    }
+
+    saveCustomChecklists(customData);
+    input.value = '';
+    renderPage();
+}
+
+function deleteCustomItem(idx) {
+    if (!confirm('Remove this item?')) return;
+    const customData = loadCustomChecklists();
+    const progress = loadProgress();
+    const items = mergeChecklist(_checklist, customData.overrides || {}, progress);
+    // idx is the index in all items; custom items start after built-in items
+    const builtinCount = _isCustom ? 0 : _checklist.items.length;
+    const customIdx = idx - builtinCount;
+    if (customIdx < 0) return; // can't delete built-in items
+
+    customData.overrides[listId] = customData.overrides[listId] || [];
+    customData.overrides[listId].splice(customIdx, 1);
+
+    if (_isCustom) {
+        const cl = (customData.custom_checklists || []).find(c => c.id === listId);
+        if (cl) cl.items.splice(customIdx, 1);
+    }
+
+    // Fix progress indices
+    const checked = new Set(progress[listId] || []);
+    const newChecked = new Set();
+    checked.forEach(i => { if (i < idx) newChecked.add(i); else if (i > idx) newChecked.add(i - 1); });
+    progress[listId] = [...newChecked];
+
+    saveCustomChecklists(customData);
+    saveProgress(progress);
+    renderPage();
+}
+
+function toggleSkipList() {
+    const skippedLists = loadSkippedLists();
+    const idx = skippedLists.indexOf(listId);
+    if (idx === -1) {
+        if (!confirm('Mark this entire list as not applicable? It will be excluded from your readiness score. You can undo this any time.')) return;
+        skippedLists.push(listId);
+    } else {
+        skippedLists.splice(idx, 1);
+    }
+    saveSkippedLists(skippedLists);
+    renderPage();
+}
+
+function resetList() {
+    if (!confirm('Reset all ticks on this checklist?')) return;
+    const progress = loadProgress();
+    progress[listId] = [];
+    saveProgress(progress);
+    renderPage();
+}
+
+function deleteList() {
+    if (!confirm('Delete this checklist? This cannot be undone.')) return;
+    const customData = loadCustomChecklists();
+    customData.custom_checklists = (customData.custom_checklists || []).filter(c => c.id !== listId);
+    delete (customData.overrides || {})[listId];
+    saveCustomChecklists(customData);
+    const progress = loadProgress();
+    delete progress[listId];
+    saveProgress(progress);
+    window.location.href = 'checklists.html';
+}
+
+init();
+</script>
+</body>
+</html>
+

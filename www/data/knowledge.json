@@ -1,0 +1,462 @@
+[
+  {
+    "id": "basic-first-aid",
+    "title": "Basic First Aid",
+    "category": "Medical",
+    "summary": "Core first aid principles based on European Resuscitation Council guidelines.",
+    "disclaimer": true,
+    "sections": [
+      {
+        "heading": "The Primary Survey — DR ABC",
+        "body": "Before treating any casualty, work through DR ABC:\n\nDANGER — Is the scene safe? Do not become a casualty yourself. Remove the danger or remove the casualty from danger if safe to do so.\n\nRESPONSE — Is the casualty conscious? Tap their shoulders and shout 'Are you alright?'\n\nAIRWAY — Is the airway open? Tilt the head back and lift the chin to open the airway.\n\nBREATHING — Is the casualty breathing? Look, listen, and feel for no more than 10 seconds.\n\nCIRCULATION — Is there severe bleeding? Control it immediately."
+      },
+      {
+        "heading": "Calling for Help",
+        "body": "112 is the universal emergency number across Europe, the UK, and most of the world. It works on any mobile network including with no SIM.\n\nWhen you call, tell them:\n- Your exact location\n- What has happened\n- How many casualties\n- The condition of the casualty\n\nDo not hang up — follow the operator's instructions."
+      },
+      {
+        "heading": "Recovery Position",
+        "body": "Use the recovery position for an unconscious casualty who is breathing.\n\n1. Kneel beside the casualty.\n2. Place the arm nearest to you at a right angle to their body.\n3. Bring their far arm across their chest and hold the back of their hand against their cheek.\n4. With your other hand, pull up their far knee so the foot is flat on the floor.\n5. Roll them towards you onto their side.\n6. Tilt the head back slightly to keep the airway open.\n7. Monitor breathing continuously.\n\nCheck on them every minute. If breathing stops, begin CPR."
+      },
+      {
+        "heading": "Shock",
+        "body": "Shock is a life-threatening condition where the body cannot maintain adequate blood flow. It is commonly caused by severe bleeding.\n\nSigns of shock:\n- Pale, cold, clammy skin\n- Rapid weak pulse\n- Rapid shallow breathing\n- Confusion or anxiety\n- Thirst\n- Loss of consciousness in severe cases\n\nTreatment:\n- Call 112\n- Treat the cause if possible (control bleeding)\n- Lay the casualty flat\n- Raise their legs 15-30cm unless injury prevents this\n- Keep them warm — use a blanket or jacket\n- Do not give food or water\n- Monitor and reassure them"
+      },
+      {
+        "heading": "Choking — Adult",
+        "body": "If a conscious adult is choking and cannot cough effectively:\n\n1. Give up to 5 firm back blows between the shoulder blades with the heel of your hand. Check after each one if the obstruction has cleared.\n\n2. If back blows fail, give up to 5 abdominal thrusts (Heimlich manoeuvre): stand behind the casualty, place one fist above the navel and below the breastbone, grasp it with your other hand and pull sharply inward and upward.\n\n3. Alternate 5 back blows and 5 abdominal thrusts.\n\n4. If the casualty loses consciousness, call 112 and begin CPR.\n\nSource: European Resuscitation Council Guidelines 2021"
+      }
+    ]
+  },
+  {
+    "id": "cpr-reference",
+    "title": "CPR Reference",
+    "category": "Medical",
+    "summary": "CPR guide based on European Resuscitation Council 2021 guidelines.",
+    "disclaimer": true,
+    "sections": [
+      {
+        "heading": "When to Start CPR",
+        "body": "Start CPR if a casualty is unresponsive AND not breathing normally. Occasional gasps are not normal breathing — start CPR.\n\nDo not delay CPR to look for a pulse unless you are trained to do so."
+      },
+      {
+        "heading": "Adult CPR",
+        "body": "1. Call 112 or send someone to call. Put on speaker.\n\n2. Place the heel of your hand on the centre of the chest (lower half of the breastbone).\n\n3. Place your other hand on top and interlock fingers. Keep fingers off the chest.\n\n4. With straight arms, press down hard and fast:\n   - Depth: 5-6cm\n   - Rate: 100-120 per minute (to the beat of Stayin' Alive by the Bee Gees)\n   - Allow the chest to fully recoil between compressions\n\n5. After 30 compressions, give 2 rescue breaths:\n   - Tilt head back, lift chin\n   - Pinch the nose, seal your mouth over theirs\n   - Blow steadily for about 1 second — watch for chest rise\n   - Give 2 breaths then immediately return to compressions\n\n6. Continue 30:2 until: emergency services arrive, an AED is ready to use, or the casualty starts breathing normally.\n\nIf you cannot or will not give rescue breaths, continuous chest compressions alone are still effective — do not stop.\n\nSource: European Resuscitation Council Guidelines 2021"
+      },
+      {
+        "heading": "Using an AED",
+        "body": "An AED (Automated External Defibrillator) is safe to use with no training — it talks you through every step.\n\n1. Turn it on.\n2. Attach the pads as shown in the diagrams — one below the right collarbone, one on the left side below the armpit.\n3. Ensure nobody is touching the casualty when the AED analyses the rhythm.\n4. If a shock is advised, ensure nobody is touching the casualty and press the shock button.\n5. Resume CPR immediately after the shock — 30 compressions then 2 breaths.\n6. Follow the AED prompts at all times.\n\nAEDs are commonly found in: airports, train stations, sports centres, shopping centres, and public buildings. Many are registered on The Circuit (UK) and similar national databases."
+      },
+      {
+        "heading": "Child CPR (1 year to puberty)",
+        "body": "Child CPR follows the same principles as adult CPR with these differences:\n\n- Give 5 initial rescue breaths before starting compressions\n- Use one or two hands depending on the size of the child\n- Compress to one third of the chest depth\n- Same rate: 100-120 per minute\n- Same ratio: 30 compressions to 2 rescue breaths\n\nSource: European Resuscitation Council Guidelines 2021"
+      },
+      {
+        "heading": "Infant CPR (under 1 year)",
+        "body": "For infants under 1 year:\n\n- Give 5 initial rescue breaths\n- Use 2 fingers for compressions (centre of chest, just below the nipple line)\n- Compress to one third of the chest depth\n- Rate: 100-120 per minute\n- Ratio: 30 compressions to 2 rescue breaths\n- Cover both mouth and nose with your mouth for rescue breaths\n\nGet trained — infant CPR is a practical skill that benefits greatly from hands-on practice.\n\nSource: European Resuscitation Council Guidelines 2021"
+      }
+    ]
+  },
+  {
+    "id": "bleeding-trauma",
+    "title": "Bleeding and Trauma Control",
+    "category": "Medical",
+    "summary": "Managing severe bleeding based on Tactical Combat Casualty Care (TCCC) and Red Cross guidance.",
+    "disclaimer": true,
+    "sections": [
+      {
+        "heading": "Catastrophic Bleeding — Act Immediately",
+        "body": "Severe bleeding can cause death within minutes. This is your first priority after ensuring scene safety.\n\nThe order of treatment for severe bleeding:\n1. Direct pressure\n2. Tourniquet (limb wounds that do not respond to pressure)\n3. Wound packing with pressure (junctional wounds — groin, armpit, neck)"
+      },
+      {
+        "heading": "Direct Pressure",
+        "body": "1. Apply a clean dressing, cloth, or your hand directly to the wound.\n2. Press HARD — harder than feels comfortable.\n3. Do not release pressure to check the wound — this disrupts clot formation.\n4. If blood soaks through, apply more material on top without removing the original.\n5. Maintain pressure for a minimum of 3 minutes.\n6. If available, use haemostatic gauze (QuikClot, Celox) — pack it into the wound before applying pressure. It significantly improves clotting.\n7. Once bleeding is controlled, apply a firm bandage to hold the dressing in place."
+      },
+      {
+        "heading": "Tourniquet",
+        "body": "Use a tourniquet for limb wounds where direct pressure has failed or is not possible.\n\nApplying a commercial tourniquet (CAT, SOFTT-W):\n1. Apply 5-7cm above the wound — never over a joint.\n2. Tighten the windlass until bleeding stops completely.\n3. Lock the windlass and secure it.\n4. Write the TIME of application on the tourniquet or the casualty's skin.\n5. Do NOT remove the tourniquet once applied — only medical professionals should do this.\n\nImprovised tourniquet:\n1. Use a wide band — folded clothing, a belt. Never rope, wire, or cord — these cause tissue damage.\n2. Tie around the limb 5-7cm above the wound.\n3. Insert a stick, pen, or rod through the knot.\n4. Twist until bleeding stops completely.\n5. Secure the windlass so it cannot unwind.\n6. Note the time.\n\nA properly applied tourniquet is painful — this is expected. It must be tight enough to stop all blood flow to be effective."
+      },
+      {
+        "heading": "Wound Packing",
+        "body": "For wounds where a tourniquet cannot be applied — torso, neck, groin, armpit:\n\n1. If available, use haemostatic gauze (QuikClot, Celox). If not, use the cleanest material available.\n2. Pack the material firmly into the wound — push it in deep. Do not be tentative.\n3. Apply firm, constant pressure with both hands for at least 3 minutes.\n4. Apply a pressure bandage tightly over the packed wound.\n5. Call 112 immediately.\n\nFor neck wounds: apply pressure carefully — do not compress both sides of the neck simultaneously."
+      },
+      {
+        "heading": "Managing Shock After Bleeding",
+        "body": "After controlling bleeding, monitor for and manage shock:\n\n- Lay the casualty flat\n- Raise legs 15-30cm if no spinal injury suspected and wound is not on the torso\n- Keep them warm — cover with a blanket or jacket\n- Reassure them — keep them calm\n- Do not give food or water\n- Monitor breathing and consciousness\n- Tell emergency services the tourniquet application time on arrival"
+      }
+    ]
+  },
+  {
+    "id": "burns",
+    "title": "Burns",
+    "category": "Medical",
+    "summary": "Burns treatment based on NHS and Red Cross guidance.",
+    "disclaimer": true,
+    "sections": [
+      {
+        "heading": "Cooling a Burn",
+        "body": "Cool the burn immediately and for at least 20 minutes under cool running water.\n\n- Start cooling as soon as possible — every second counts\n- Use cool water, not cold, iced, or freezing water\n- Do not use ice, butter, toothpaste, creams, or any other substance\n- Continue for 20 minutes even if it seems better sooner\n- Keep the rest of the body warm while cooling the burn — hypothermia is a risk\n\nSource: NHS, British Burns Association"
+      },
+      {
+        "heading": "After Cooling",
+        "body": "After 20 minutes of cooling:\n\n- Remove jewellery, watches, or clothing near the burn — but do NOT remove anything stuck to the burn\n- Cover loosely with clean cling film (lengthways, not wrapped around a limb) or a sterile non-fluffy dressing\n- Do not use fluffy materials, plasters, or adhesive dressings directly on a burn\n- Do not burst blisters"
+      },
+      {
+        "heading": "When to Seek Medical Attention",
+        "body": "Always seek medical attention for:\n\n- Burns larger than approximately 3cm x 3cm (roughly the size of a palm)\n- Burns on the face, hands, feet, genitals, or over a joint\n- Burns that are deep — white, brown, or black in colour, or painless\n- Chemical burns\n- Electrical burns — even if they look minor on the surface\n- Burns that go all the way around a limb\n- Burns in children, elderly people, or pregnant women\n- Any burn where you are unsure\n\nCall 112 for serious burns or if the casualty shows signs of shock."
+      },
+      {
+        "heading": "Chemical Burns",
+        "body": "For chemical burns:\n\n1. Protect yourself — wear gloves if available before touching contaminated skin or clothing\n2. Remove any contaminated clothing that is not stuck to the skin\n3. Brush off any dry chemical before applying water\n4. Flood the area with large amounts of water for at least 20 minutes\n5. Call 112\n6. Tell emergency services what chemical was involved"
+      }
+    ]
+  },
+  {
+    "id": "water-purification",
+    "title": "Water Purification",
+    "category": "Water",
+    "summary": "Methods for making water safe to drink when tap water is unavailable.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "Why Water Purification Matters",
+        "body": "A healthy adult can survive approximately 3 days without water. In an emergency, tap water may become unavailable, contaminated, or unsafe.\n\nThe main threats in untreated water are biological — bacteria, viruses, and protozoa (such as Giardia and Cryptosporidium). Chemical contamination also occurs but requires different treatment.\n\nMinimum water requirement: 2 litres per person per day for drinking and basic sanitation. More is needed in heat or for physical activity."
+      },
+      {
+        "heading": "Boiling",
+        "body": "Boiling is the most reliable method for killing biological contaminants.\n\n- Bring water to a rolling boil for at least 1 minute\n- At altitudes above 2000m, boil for 3 minutes\n- Allow to cool before drinking\n- Store in a clean covered container\n\nBoiling does not remove chemical contamination, heavy metals, or salt. It also uses fuel — consider this when rationing supplies."
+      },
+      {
+        "heading": "Water Purification Tablets",
+        "body": "Purification tablets are lightweight, cheap, and effective — ideal for emergency kits.\n\nChlorine tablets (e.g. Puritabs):\n- Effective against bacteria and most viruses\n- Less effective against Cryptosporidium\n- Follow manufacturer instructions — typically 1 tablet per litre, wait 30 minutes\n- Taste can be improved by adding a pinch of vitamin C or leaving the lid off for a few minutes\n\nChlorine dioxide tablets:\n- More effective than chlorine — kills bacteria, viruses, and Cryptosporidium\n- Takes longer — typically 4 hours for full effectiveness against Cryptosporidium\n- Preferred for wilderness use where protozoa are a higher risk\n\nNote: Tablets are less effective in cold or turbid (cloudy) water. Pre-filter cloudy water through a cloth before treating."
+      },
+      {
+        "heading": "Water Filters",
+        "body": "Portable water filters remove bacteria and protozoa by passing water through a fine membrane.\n\nCommon types:\n- Squeeze filters (e.g. Sawyer Squeeze) — squeeze a pouch through the filter\n- Straw filters (e.g. LifeStraw) — drink directly through the filter\n- Pump filters — manual pumping through a filter cartridge\n\nImportant limitations:\n- Most portable filters do NOT remove viruses — viruses are smaller than the filter pores\n- In Europe and wilderness settings, viral contamination is lower risk\n- In disaster situations with sewage contamination, combine filtering with chemical treatment\n- Replace filter cartridges according to manufacturer guidance\n- In freezing temperatures, wet filters can be damaged — keep them warm"
+      },
+      {
+        "heading": "Pre-Filtering Cloudy Water",
+        "body": "Cloudy or turbid water reduces the effectiveness of all purification methods.\n\nBefore purifying cloudy water:\n1. Let the water sit and allow sediment to settle\n2. Pour through a clean cloth, coffee filter, or multiple layers of clothing to remove particles\n3. Then boil or treat with tablets\n\nThe clearer the water before treatment, the more effective the purification."
+      },
+      {
+        "heading": "Water Storage",
+        "body": "Safe water storage:\n\n- Use food-grade containers — dedicated water containers, clean plastic bottles, or jerry cans\n- Do not use containers that previously held chemicals or non-food substances\n- Store in a cool, dark location away from direct sunlight\n- If storing tap water long-term, add 2 drops of unscented household bleach (5% sodium hypochlorite) per litre as a preservative\n- Rotate stored water every 6-12 months\n- Label containers with the date stored\n- Keep containers off the floor — on shelves where possible"
+      }
+    ]
+  },
+  {
+    "id": "food-storage",
+    "title": "Food Storage Basics",
+    "category": "Food",
+    "summary": "Practical guide to building and maintaining a food stockpile.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "The Basics",
+        "body": "A food stockpile does not need to be complex. The goal is to have enough food to sustain your household without resupply for a defined period — start with 72 hours, build towards 2 weeks.\n\nKey principles:\n- Store what you eat and eat what you store — rotate your stock\n- Focus on calorie-dense, long shelf-life staples\n- Include comfort foods — morale matters in a prolonged emergency\n- Account for cooking method — if power is out, can you prepare these foods?"
+      },
+      {
+        "heading": "High Priority Staples",
+        "body": "These foods offer the best combination of calorie density, shelf life, and versatility:\n\nGrains and carbohydrates:\n- White rice — up to 25 years if sealed properly\n- Pasta — 2-5 years\n- Oats — 2-5 years\n- Flour — 1-2 years\n- Crackers and hardtack — 1-5 years\n\nProteins:\n- Tinned meat (chicken, tuna, sardines, mackerel) — 2-5 years\n- Dried lentils and beans — 5-10 years\n- Peanut butter — 1-2 years\n- Dried milk powder — 2-10 years\n\nFats and calories:\n- Cooking oil — 1-4 years\n- Ghee (clarified butter) — up to 2 years\n- Honey — indefinite shelf life if sealed\n\nVegetables and vitamins:\n- Tinned vegetables — 3-5 years\n- Tinned tomatoes — 3-5 years\n- Multivitamins — supplement fresh produce gap"
+      },
+      {
+        "heading": "Shelf Life and Rotation",
+        "body": "The FIFO principle — First In, First Out:\n\n- When adding new stock, place it behind existing stock\n- Use from the front — oldest stock first\n- Check expiry dates every 6 months\n- Do not wait until items expire to use them — integrate stockpile food into your regular diet\n\nStorage conditions that extend shelf life:\n- Cool temperatures — below 20C ideal\n- Dry — humidity degrades packaging and promotes mould\n- Dark — light degrades some foods and packaging\n- Away from pests — sealed containers prevent rodent and insect access\n\nMylar bags with oxygen absorbers significantly extend shelf life of dry goods like rice, beans, and oats."
+      },
+      {
+        "heading": "Cooking Without Power",
+        "body": "A stockpile is only useful if you can prepare the food. Consider your cooking options:\n\nCamp stove with gas canisters:\n- Simple, effective, portable\n- Store several spare canisters\n- Use outdoors or in well-ventilated areas only\n\nWood fire or rocket stove:\n- No fuel cost, renewable\n- Less convenient, requires dry wood\n- Smoke and visibility considerations in security situations\n\nBBQ (charcoal or gas):\n- Never use indoors — carbon monoxide risk\n- Useful for bulk cooking\n\nNo-cook options:\n- Tinned food can be eaten cold if necessary\n- Crackers, peanut butter, dried fruit, nuts, energy bars require no preparation\n- Having a proportion of no-cook food is wise"
+      }
+    ]
+  },
+  {
+    "id": "pmr446-guide",
+    "title": "PMR446 Guide",
+    "category": "Communications",
+    "summary": "A practical guide to PMR446 — the licence-free radio standard across Europe.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What is PMR446?",
+        "body": "PMR446 (Personal Mobile Radio 446 MHz) is a licence-free radio service available across Europe. It operates on 16 channels in the UHF band around 446 MHz.\n\nKey facts:\n- No licence required anywhere in Europe\n- Widely available — radios sold in most outdoor and electronics shops\n- Maximum power: 500mW (0.5 watts)\n- Typical range: 1-5km in open terrain, less in urban areas or inside buildings\n- Both analogue (FM) and digital (dPMR, DMR) variants exist\n- Antenna must be fixed (no external antennas allowed under PMR446 rules)\n\nPMR446 is ideal for local neighbourhood and community communications — exactly the kind of short-range coordination RPN promotes."
+      },
+      {
+        "heading": "Channels and Usage",
+        "body": "PMR446 has 16 channels. Commonly used conventions:\n\nChannel 1 — General calling channel (most widely used)\nChannel 8 — Alternative calling channel\nChannel 9 — Some groups use for emergency/priority\n\nThere is no legally enforced channel plan — agree your group's channels in advance and record them in your radio notebook.\n\nCTCSS tones (sub-audible tones) can be used to filter out other users on a shared channel. If you set a CTCSS tone, you will only hear transmissions that include the same tone. This does not give you a private channel — others can still hear you."
+      },
+      {
+        "heading": "Radio Procedure",
+        "body": "Basic radio procedure keeps communications clear and efficient:\n\nCalling another station:\n'[Their name/callsign], this is [your name/callsign], over.'\n\nEnding a transmission:\n'Over' — I have finished transmitting, I expect a reply.\n'Out' — I have finished, conversation is complete, no reply needed.\n\nPhonetic alphabet — use when spelling out names, callsigns, or important information:\nA-Alpha, B-Bravo, C-Charlie, D-Delta, E-Echo, F-Foxtrot, G-Golf, H-Hotel, I-India, J-Juliet, K-Kilo, L-Lima, M-Mike, N-November, O-Oscar, P-Papa, Q-Quebec, R-Romeo, S-Sierra, T-Tango, U-Uniform, V-Victor, W-Whiskey, X-X-ray, Y-Yankee, Z-Zulu\n\nListen before transmitting — check the channel is clear. Keep transmissions brief and clear. Speak slowly and clearly."
+      },
+      {
+        "heading": "Practical Tips",
+        "body": "Getting the most from PMR446:\n\n- Higher is better — range improves significantly with elevation. A radio on an upper floor or hill will reach much further than one at ground level.\n- Building penetration is poor — expect reduced range indoors.\n- Batteries — keep a set of fresh batteries or rechargeable batteries available. Cold weather reduces battery life significantly.\n- Squelch — adjust the squelch so the radio is silent when nothing is transmitting but opens for weak signals.\n- Test your network regularly — a monthly check-in builds familiarity and identifies problems before an emergency.\n- Digital PMR (dPMR or DMR on 446 MHz) offers more privacy than analogue — digital radios are less common so fewer people will be listening in. If operational security matters to your group, digital is worth considering.\n- Callsigns on PMR — PMR446 requires no licence so there is no formal callsign system. A practical convention is to use your initials (e.g. LS for Lewis Scrivens). Keep it short, consistent, and known to your group.\n\nNote on repeaters: operating a PMR446 repeater (a device that automatically receives and retransmits on PMR446 frequencies) is illegal in most European countries, including the UK. PMR446 is licensed for simplex use only. Be aware of this before setting one up."
+      }
+    ]
+  },
+  {
+    "id": "cb-radio-guide",
+    "title": "CB Radio Guide",
+    "category": "Communications",
+    "summary": "A practical guide to CB radio for emergency and preparedness communications.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What is CB Radio?",
+        "body": "Citizens Band (CB) radio operates on 40 channels in the 27 MHz (11 metre) HF band. It requires no licence in most European countries.\n\nKey facts:\n- No licence required in most EU countries and the UK\n- Range: typically 5-20km for AM/FM, 50-200km+ for SSB under good conditions\n- Power: up to 4 watts AM, 12 watts SSB (varies by country)\n- 27 MHz is an HF frequency — it can bounce off the ionosphere, giving CB potential for very long range under certain conditions\n- Mobile (vehicle-mounted) and base station setups offer better range than handhelds\n- Antenna makes a significant difference — a good antenna will outperform a mediocre radio"
+      },
+      {
+        "heading": "Key Channels",
+        "body": "Channel 9 — International emergency and calling channel. Monitor this if you can.\nChannel 19 — Widely used by truckers and mobile operators across Europe. High traffic on major roads.\nChannel 11 — Secondary calling channel in some countries.\n\nAgree your group's primary and backup channels in advance. Channel 9 is your starting point in an emergency if you have no pre-agreed channel."
+      },
+      {
+        "heading": "SSB — Single Sideband",
+        "body": "SSB (Single Sideband) is a mode available on many CB radios that offers significantly greater range than AM.\n\nUSB (Upper Sideband) and LSB (Lower Sideband) are the two variants. USB is more commonly used.\n\nAdvantages of SSB:\n- 3x more efficient use of power than AM\n- Typical range of 50-200km under normal conditions\n- Can achieve hundreds or thousands of kilometres under good propagation conditions (skip/sporadic E)\n- Better performance in interference-heavy environments\n\nSSB audio sounds distorted if you are not tuned correctly — fine-tune the clarifier control until voices sound natural.\n\nFor emergency communications, SSB CB with a good antenna is a seriously capable tool that most people overlook."
+      },
+      {
+        "heading": "Antennas",
+        "body": "Antenna selection and placement has more impact on CB performance than almost anything else.\n\nMobile antennas:\n- Full wavelength (5/8 wave) antennas offer better range than shorter alternatives\n- Mount as high and centrally as possible on the vehicle\n- A good ground plane (the metal body of the vehicle) is essential\n\nBase station antennas:\n- Height is range — mount the antenna as high as practical\n- A simple vertical dipole or ground plane antenna is easy to build and very effective\n- Check SWR (Standing Wave Ratio) with an SWR meter — high SWR damages your radio\n\nEmergency antenna:\n- A simple wire antenna can be made from a 2.7m length of wire (quarter wave for 27 MHz)\n- Hang it vertically as high as possible\n- Connect to the centre pin of your radio's antenna socket"
+      }
+    ]
+  },
+  {
+    "id": "meshcore-guide",
+    "title": "MeshCore Guide",
+    "category": "Communications",
+    "summary": "Introduction to MeshCore — off-grid LoRa mesh networking for community communications.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What is MeshCore?",
+        "body": "MeshCore is an open-source LoRa-based mesh networking system designed for off-grid communications. It allows text messaging and position sharing without any internet, phone network, or central infrastructure.\n\nKey facts:\n- Works completely without internet or phone networks\n- Range per node: typically 1-10km depending on device, antenna, and terrain\n- Nodes relay messages to extend range across the network\n- Encrypted by default\n- Low power — many nodes run for days or weeks on batteries or small solar setups\n- Operates on LoRa radio frequencies (868 MHz in Europe)\n- Free and open source\n\nMeshCore is particularly suited to RPN's community network model — each member with a node extends the network's coverage and resilience."
+      },
+      {
+        "heading": "Node Types",
+        "body": "MeshCore uses different node roles:\n\nClient — A personal device used to send and receive messages. Typically a handheld device.\n\nRouter — Forwards messages between other nodes to extend network range. Can be a fixed installation — on a roof or elevated location — running on solar or mains power.\n\nRepeater — A dedicated relay node, usually in a high location to maximise coverage. Does not typically have a user interface.\n\nBase Station — A router or repeater connected to a computer or network, potentially providing a gateway to other systems.\n\nBuilding a resilient community network means having a mix of mobile client devices for members and fixed router/repeater nodes at elevated locations."
+      },
+      {
+        "heading": "Hardware",
+        "body": "MeshCore runs on LoRa-capable hardware. Common platforms include:\n\n- LILYGO T-Echo — compact, has a small screen, good battery life\n- LILYGO T-Beam — popular, has GPS, larger form factor\n- RAK WisBlock — modular, good for custom builds\n- Heltec LoRa 32 — low cost, good for fixed nodes\n\nFor European use, ensure your hardware uses the 868 MHz frequency band — this is the legal LoRa band in Europe.\n\nA basic antenna upgrade (replacing the stock stubby antenna with a longer or directional antenna) can significantly improve range."
+      },
+      {
+        "heading": "Channels and Security",
+        "body": "MeshCore uses named channels with encryption keys to create private communication groups.\n\n- Messages on a channel are encrypted with that channel's key\n- Only devices configured with the correct channel name and key can read messages\n- You can be a member of multiple channels simultaneously\n- The default channel is unencrypted — configure a private channel for your group\n\nKey management:\n- Agree a channel name and encryption key with your group in advance\n- Record the channel details securely — if you lose the key, you cannot rejoin the channel\n- Store a record of your channel settings in the Mesh Network section of this app\n- Do not share channel keys over insecure channels"
+      },
+      {
+        "heading": "Building a Community Network",
+        "body": "Steps to building a local RPN mesh network:\n\n1. Start with what you have — even two nodes communicating is the beginning of a network.\n\n2. Identify high points — rooftops, hills, tall buildings in your area. A router node at height dramatically extends coverage.\n\n3. Recruit local members — each person who adds a node extends the network. Share this guide with your local group.\n\n4. Test regularly — send check-in messages, test coverage, identify gaps.\n\n5. Document your network — use the Mesh Network section of this app to record nodes, channels, contacts, and coverage gaps.\n\n6. Plan for power failure — ensure your key router nodes have battery or solar backup.\n\n7. Integrate with your communications plan — agree check-in times and procedures for your mesh network just as you would for voice radio."
+      }
+    ]
+  },
+  {
+    "id": "navigation-basics",
+    "title": "Map and Compass Navigation",
+    "category": "Navigation",
+    "summary": "Basic navigation skills using a map and compass — no GPS required.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "Why Learn Navigation?",
+        "body": "GPS and smartphones are reliable in normal conditions. In an emergency:\n- Phone battery dies\n- GPS signal can be jammed or degraded\n- No mobile data to load maps\n- Electronic devices can be damaged\n\nA paper map and compass require no batteries, no signal, and no network. They are genuinely reliable tools."
+      },
+      {
+        "heading": "Understanding a Topographic Map",
+        "body": "Key map features:\n\nContour lines — lines connecting points of equal elevation. The closer together, the steeper the terrain. Widely spaced contour lines mean gentle slopes.\n\nGrid squares — most European topographic maps use a grid system. Each square represents a defined area (1km x 1km on a 1:50,000 map).\n\nScale — 1:50,000 means 1cm on the map equals 500m on the ground. 1:25,000 means 1cm equals 250m.\n\nMap symbols — learn to read common symbols: roads, buildings, water features, woodland, cliffs.\n\nNorth — most maps are oriented with grid north at the top. True north and magnetic north differ slightly — your compass points to magnetic north."
+      },
+      {
+        "heading": "Using a Compass",
+        "body": "A baseplate compass (e.g. Silva type) is standard for navigation.\n\nParts of a compass:\n- Baseplate — the flat transparent base\n- Compass housing — the rotating dial marked in degrees\n- Magnetic needle — the red end points to magnetic north\n- Direction of travel arrow — on the baseplate\n- Orienting lines — inside the housing, lined up with map grid lines\n\nTaking a bearing from a map:\n1. Place the compass on the map with the edge along your route from A to B.\n2. Rotate the compass housing until the orienting lines are parallel with the map's north-south grid lines, with N pointing to the top of the map.\n3. Read the bearing from the housing at the direction of travel arrow.\n4. Adjust for magnetic declination if required.\n5. Hold the compass level, rotate your body until the red needle is within the orienting arrow. Walk in the direction of travel arrow."
+      },
+      {
+        "heading": "Grid References",
+        "body": "A grid reference identifies a specific location on a map.\n\nSix-figure grid reference (identifies a 100m x 100m square):\n1. Find the easting (vertical grid line to the left of your point) — two digits.\n2. Estimate tenths across the square — one digit.\n3. Find the northing (horizontal grid line below your point) — two digits.\n4. Estimate tenths up the square — one digit.\n5. Combine: Eastings then Northings — e.g. 374 521.\n\nAlways quote the map sheet or grid letter prefix when communicating a grid reference to someone who may be using a different map sheet."
+      },
+      {
+        "heading": "Practical Tips",
+        "body": "- Always carry a paper map of your local area and region. Laminate it or keep it in a waterproof bag.\n- Know the map before you need it — familiarise yourself with your local area's terrain features.\n- Set your map — orient the map so north on the map matches north on the ground.\n- Handrails — follow linear features (roads, rivers, walls, ridgelines) to navigate efficiently.\n- Tick off features — as you travel, identify features you pass on the map to confirm your position.\n- If lost, stop. Do not keep walking in the hope it will resolve. Use your last known position and work from there.\n- Practice navigation in familiar areas before relying on these skills in an emergency."
+      }
+    ]
+  },
+  {
+    "id": "situational-awareness",
+    "title": "Situational Awareness",
+    "category": "Security",
+    "summary": "Developing the habit of awareness that underpins personal and community security.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What is Situational Awareness?",
+        "body": "Situational awareness is the conscious habit of knowing what is happening around you — who is present, what they are doing, what the environment looks like, and what might change.\n\nIt is not paranoia. It is the difference between being surprised by events and being in a position to respond to them.\n\nMost security incidents, accidents, and emergencies are preceded by observable indicators. People who maintain good situational awareness tend to notice these indicators earlier and have more options available to them."
+      },
+      {
+        "heading": "Cooper's Colour Code",
+        "body": "Colonel Jeff Cooper developed a simple colour code for states of alertness:\n\nWHITE — Unaware. Relaxed, not paying attention. Appropriate only when in a completely safe environment (asleep at home). Being in white in public is a vulnerability.\n\nYELLOW — Relaxed alertness. No specific threat identified, but aware of your surroundings. This is the appropriate default state in public. Comfortable and sustainable.\n\nORANGE — Specific alert. You have identified something that requires attention — a person acting strangely, an unusual situation. You are focused and ready to act.\n\nRED — Action. You are responding to a confirmed threat.\n\nThe goal is to operate habitually in yellow — aware without being tense. This gives you time to move from yellow to orange to red in a controlled way, rather than being surprised in white."
+      },
+      {
+        "heading": "Practical Habits",
+        "body": "Simple habits that build situational awareness:\n\n- When entering a building, note the exits.\n- When sitting in a public place, sit with your back to a wall where possible, facing the entrance.\n- Limit phone use in public — a phone drops you from yellow to white instantly.\n- Notice what is normal for an environment. Anything that deviates from normal is worth noting.\n- Trust your instincts — if something feels wrong, pay attention. The subconscious processes threat cues before the conscious mind catches up.\n- Know the people around you. In a community context, knowing who belongs and who does not is a significant security asset."
+      },
+      {
+        "heading": "Pre-Event Indicators",
+        "body": "Many incidents are preceded by observable indicators:\n\n- Unusual interest in a location — repeated observation, photography\n- People out of place for the environment\n- Abandoned bags or items\n- Unusual vehicles parked for long periods\n- People dressed inappropriately for the weather (concealing something)\n- Nervousness, avoidance of eye contact, or unusual behaviour\n- Probing questions about routines, security, or access\n\nThese do not confirm a threat — most are innocent. But they warrant moving from yellow to orange and paying closer attention."
+      },
+      {
+        "heading": "Community Situational Awareness",
+        "body": "Individual awareness has limits. Community awareness is far more powerful.\n\n- Know your neighbours — you notice strangers more easily when you know who belongs.\n- Share relevant observations with your trusted network — not panic, just information.\n- Establish normal patterns — regular check-ins and radio nets establish what normal looks like and make deviation obvious.\n- Brief your household — ensure all household members have basic situational awareness habits.\n- The RPN community feed (when available) allows local situation reports to be shared across your network — use it."
+      }
+    ]
+  },
+  {
+    "id": "emergency-mindset",
+    "title": "Mindset in Emergencies",
+    "category": "Mindset",
+    "summary": "Understanding stress, decision making, and leadership under pressure.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "The Stress Response",
+        "body": "In a genuine emergency, the body's stress response activates automatically. Understanding it helps you work with it rather than against it.\n\nCommon effects:\n- Tunnel vision — focus narrows to the perceived threat\n- Auditory exclusion — sounds may seem muted or distant\n- Time distortion — events may seem to slow down or speed up\n- Fine motor skill degradation — complex physical tasks become harder\n- Cognitive impairment — complex decision making becomes harder\n- Trembling, dry mouth, elevated heart rate\n\nThese are normal physiological responses, not signs of weakness. They affect everyone."
+      },
+      {
+        "heading": "Managing Your Stress Response",
+        "body": "Tactical breathing (box breathing) is proven to help manage acute stress:\n\n1. Inhale for 4 counts\n2. Hold for 4 counts\n3. Exhale for 4 counts\n4. Hold for 4 counts\nRepeat 4 times\n\nThis activates the parasympathetic nervous system and partially counteracts the acute stress response.\n\nPractice this regularly — it must become automatic to be useful under pressure.\n\nOther techniques:\n- Focus on what you can control, not what you cannot\n- Break the situation into small immediate tasks\n- Verbalise — talking through actions (even quietly) engages the rational brain\n- Physical action helps — doing something reduces the feeling of helplessness"
+      },
+      {
+        "heading": "Decision Making Under Pressure",
+        "body": "Complex analytical decision making degrades under stress. Good emergency decisions tend to come from:\n\nSimplification — break the problem down. What is the single most important thing right now?\n\nPre-planning — decisions made in advance (bug out triggers, meeting points, comms plans) do not need to be made under stress. Make them now.\n\nMental rehearsal — thinking through scenarios in advance ('what would I do if...') builds mental pathways that activate under stress.\n\nDefault to training — under extreme stress, people revert to what they have practised. Train realistic scenarios, not ideal ones.\n\nThe 80% solution — a good plan executed now is usually better than a perfect plan executed too late."
+      },
+      {
+        "heading": "Leadership in Emergencies",
+        "body": "In a group emergency, someone needs to lead. Leadership in an emergency is not about rank — it is about clarity and calm.\n\nEffective emergency leadership:\n- Remain visibly calm — calm is contagious, as is panic\n- Give clear, simple, direct instructions — one task at a time\n- Use names — 'John, call 112. Sarah, get the first aid kit.'\n- Acknowledge the situation — do not pretend it is not serious, but focus on action\n- Delegate — do not try to do everything yourself\n- Check in — confirm that tasks are being done\n- Reassess continuously — situations change\n\nIf nobody is leading, take the initiative. In the absence of a designated leader, the person who steps forward and gives clear instructions is the leader."
+      },
+      {
+        "heading": "After the Emergency",
+        "body": "The psychological impact of emergencies can emerge hours, days, or weeks after the event.\n\nNormal responses after a traumatic event:\n- Intrusive thoughts or flashbacks\n- Sleep disturbance\n- Heightened anxiety or alertness\n- Irritability\n- Difficulty concentrating\n\nThese are normal responses to abnormal events. For most people they reduce over days and weeks.\n\nHelping yourself and others:\n- Talk about the experience with trusted people\n- Maintain normal routines where possible\n- Avoid using alcohol or substances to cope\n- Physical activity helps process stress hormones\n- Seek professional support if symptoms persist beyond a few weeks or are severe\n\nDebriefing your group after an incident — what happened, what went well, what would you do differently — builds resilience and improves future performance."
+      }
+    ]
+  },
+  {
+    "id": "getting-started-pmr446",
+    "title": "Getting Started with PMR446",
+    "category": "Getting Started with Radio",
+    "summary": "How to buy, set up, and use PMR446 radios — no licence required, works across Europe.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What is PMR446 and Why Should You Have It?",
+        "body": "PMR446 is the simplest way to get started with radio communications. It requires no licence, no registration, and no technical knowledge. You buy the radios, switch them on, and they work.\n\nFor preparedness purposes, PMR446 gives you short-range local communications when phones fail. A pair of radios costs as little as 20-40 EUR and could be the difference between being able to coordinate with your household or neighbours during an emergency and having no communications at all.\n\nEvery prepared household should have at least two PMR446 radios. Every RPN community member should have them."
+      },
+      {
+        "heading": "What to Buy",
+        "body": "Budget option (20-50 EUR per pair):\n- Motorola T Series (T62, T82, T92) — reliable, widely available, waterproof models available\n- Retevis RT Series — good value, solid build\n- Midland G Series — popular across Europe\n\nMid-range (50-100 EUR per radio):\n- Motorola XT Series (XT420, XT460, XT660d) — more features, better build quality, licence-free\n- Kenwood ProTalk series\n\nWhat to look for:\n- Waterproof or water-resistant (IP rating)\n- Good battery life — rechargeable with USB charging preferred\n- CTCSS/DCS tone support — useful for filtering\n- VOX (voice activated) — useful hands-free\n- At least 8 channels (all PMR446 radios have 16)\n\nAvoid very cheap no-name radios — they are often non-compliant with PMR446 regulations and may not perform reliably."
+      },
+      {
+        "heading": "Setting Up",
+        "body": "PMR446 setup is straightforward:\n\n1. Charge the batteries fully before first use.\n2. Ensure all radios in your group are on the same channel — Channel 1 is the standard starting point.\n3. Set the same CTCSS tone on all radios if you want to filter other users. If you set no tone, you will hear all transmissions on the channel.\n4. Test communications — transmit from one radio and confirm reception on the others.\n5. Agree your group's channels in advance and record them in your Radio Notebook:\n   - Primary channel (e.g. CH1)\n   - Secondary/backup channel (e.g. CH8)\n   - Emergency channel (e.g. CH9)\n\nNo antenna adjustments needed — PMR446 radios have a fixed antenna and are ready to use out of the box."
+      },
+      {
+        "heading": "Range and Limitations",
+        "body": "Realistic PMR446 range:\n- Open flat terrain: 2-5km\n- Suburban/urban: 500m-2km\n- Inside buildings: 50-200m\n- Between floors in a building: often poor\n\nImproving range:\n- Height significantly increases range — use from an upper floor or elevated position\n- Move away from large metal objects and buildings where possible\n- If range is consistently poor, consider a simple repeater setup\n\nLimitations to understand:\n- PMR446 is limited to 500mW — it cannot be legally modified for more power\n- Fixed antenna — no external antennas allowed under PMR446 rules\n- Shared spectrum — others may be on the same channel\n- Not suitable for long-range communications — use CB or amateur radio for that"
+      },
+      {
+        "heading": "Where to Learn More",
+        "body": "- UK PMR446 regulations: Ofcom website\n- EU PMR446 regulations: ETSI standard EN 300 296\n- RPN Radio Notebook: record your channels and group contacts\n- RPN Knowledge Library: PMR446 Guide — operating procedures and radio etiquette\n- The Prepper Network Podcast: episodes covering radio communications\n\nThe best next step after buying your radios is to test them with your household and neighbours. Agree on channels, practice calling each other, and get comfortable with the equipment before you need it."
+      }
+    ]
+  },
+  {
+    "id": "getting-started-cb",
+    "title": "Getting Started with CB Radio",
+    "category": "Getting Started with Radio",
+    "summary": "How to buy and set up CB radio — longer range than PMR446, no licence required in most European countries.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "Why CB Radio for Preparedness?",
+        "body": "CB radio operates on 27 MHz (11 metres) and offers significantly greater range than PMR446 — typically 5-20km for AM, and 50-200km or more for SSB under good conditions.\n\nFor preparedness, CB radio fills the gap between PMR446 (local, short range) and amateur radio (long range, licence required). It requires no licence in most European countries, and equipment is widely available and affordable.\n\nA CB radio in your vehicle means you can communicate over significant distances without any infrastructure. A base station at home extends your reach further. SSB capability takes it to another level entirely."
+      },
+      {
+        "heading": "Licence Requirements by Country",
+        "body": "CB radio is licence-free in most European countries, but regulations vary:\n\nUK — No licence required. 40 channels AM/FM/SSB. Max power 4W AM, 12W SSB.\nIreland — No licence required. Same as UK.\nGermany — No licence required. 80 channels (40 EU standard + 40 additional).\nFrance — No licence required. 40 channels.\nItaly — No licence required. 40 channels.\nSpain — No licence required. 40 channels.\nNetherlands — No licence required.\nBelgium — No licence required.\n\nAlways verify current regulations for your country — rules can change. Using CB radio illegally (wrong power, modified equipment) can result in fines and equipment confiscation."
+      },
+      {
+        "heading": "What to Buy",
+        "body": "Mobile (vehicle) CB radio — best starting point:\n- Midland Alan 48 Plus — popular, reliable, good value (60-80 EUR)\n- President Randy FCC — solid mobile radio with SSB (120-150 EUR)\n- Uniden PRO520XL — budget option, basic but functional\n\nSSB capable mobile radio (recommended for serious use):\n- President McKinley — excellent SSB radio, well regarded (150-200 EUR)\n- Midland Alan 9001 — popular European SSB mobile (120-160 EUR)\n- President Lincoln II — feature-rich SSB radio (200-250 EUR)\n\nHandheld CB:\n- Midland Alan 42 DS — compact handheld (60-80 EUR)\n- Limited range compared to mobile/base — antenna is the constraint\n\nBase station:\n- Any mobile radio can be used as a base station with a 12V power supply (10-20 EUR) and a base antenna\n\nYou will also need an antenna — see below."
+      },
+      {
+        "heading": "Antennas",
+        "body": "The antenna is the most important part of your CB setup. A good antenna will outperform an expensive radio with a poor antenna every time.\n\nMobile antennas:\n- Sirio Performer 5000 — excellent 5/8 wave antenna, popular in Europe (40-60 EUR)\n- Midland Alan 651M — reliable, good value (20-30 EUR)\n- Mount the antenna as high and centrally on the vehicle as possible\n- Magnetic mounts are convenient but a permanent mount gives better ground plane\n\nBase station antennas:\n- Sirio 827 — vertical base antenna, good all-rounder (60-80 EUR)\n- Sigma 5 — popular vertical, easy to install (40-60 EUR)\n- DIY ground plane: a simple vertical antenna for CB can be built from wire — a 2.7m vertical element with 4 x 2.7m radials\n- Mount as high as possible — roof or mast preferred\n\nChecking SWR:\n- Always check SWR (Standing Wave Ratio) before using a new antenna\n- An SWR meter costs 15-30 EUR and protects your radio from reflected power\n- Target SWR below 1.5:1 — above 2:1 is problematic"
+      },
+      {
+        "heading": "Getting on Air",
+        "body": "Once your radio and antenna are connected:\n\n1. Check SWR before transmitting.\n2. Turn on the radio. Set squelch — turn it up until background noise disappears, then back slightly until it just opens.\n3. Go to Channel 9 — the international emergency and calling channel. Listen for a minute before transmitting.\n4. To make a call: press the PTT (push to talk) button, wait half a second, then speak clearly. 'Any station, any station, this is [your name], radio check, over.'\n5. Listen for a response.\n6. If using SSB, switch to USB (upper sideband), go to CH9 USB, and follow the same process.\n\nRecord your frequencies and contacts in the Radio Notebook section of this app."
+      },
+      {
+        "heading": "Where to Learn More",
+        "body": "- UK CB regulations: Ofcom Interface Requirement 2004\n- CB radio forums: CB Radio Magazine (UK), various European forums\n- YouTube: search for CB radio setup guides — there is excellent free content\n- RPN Knowledge Library: CB Radio Guide — operating procedures and SSB explained\n- RPN Radio Notebook: record your channels, contacts, and equipment\n\nConsider joining a local CB club or community — most areas have active CB operators who are happy to help newcomers get set up."
+      }
+    ]
+  },
+  {
+    "id": "getting-started-amateur",
+    "title": "Getting Started with Amateur Radio",
+    "category": "Getting Started with Radio",
+    "summary": "What amateur radio is, how to get licensed, and why it is the most capable radio option for prepared communities.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "Why Amateur Radio?",
+        "body": "Amateur radio (also called ham radio) is the most capable radio option available to individuals without special government or military authorisation.\n\nWith an amateur radio licence you can:\n- Communicate locally on VHF/UHF (handheld and mobile radios)\n- Communicate regionally and internationally on HF (shortwave)\n- Use repeaters to extend range significantly\n- Operate higher power transmitters\n- Experiment with antennas and modes\n- Operate in emergency communications networks (RAYNET in UK, IARU member societies across Europe)\n\nAn HF amateur radio station can communicate across Europe or worldwide without any infrastructure. In a genuine grid-down scenario, this capability is essentially irreplaceable.\n\nThe licence requires study and an exam — but the exam is not difficult, and the capability it unlocks is worth the effort."
+      },
+      {
+        "heading": "The Licence Structure",
+        "body": "Amateur radio licences vary by country but most have a tiered structure:\n\nUK (Ofcom):\n- Foundation Licence — entry level, basic exam, limited power (10W), covers VHF/UHF and some HF bands\n- Intermediate Licence — more privileges, 50W, more bands\n- Full Licence — full privileges, up to 400W, all bands\n\nIreland (ComReg):\n- Harmonised Amateur Radio Examination (HAREC) — single exam, full licence\n\nEurope generally follows CEPT/HAREC:\n- Class 1 (Full) and Class 2 (Novice/Foundation) in most countries\n- HAREC certificate allows operation in most CEPT member countries\n\nStart with Foundation/Class 2 — it is achievable with a few weeks of study and gets you on air. You can upgrade later."
+      },
+      {
+        "heading": "Getting Licensed",
+        "body": "UK Foundation Licence:\n1. Study the Foundation Licence manual — available from the RSGB (Radio Society of Great Britain)\n2. Join a local amateur radio club — most run Foundation courses, often free or low cost\n3. Take the exam — multiple choice, practical assessment. Pass mark around 70%\n4. Apply to Ofcom for your callsign — done online, costs around 20 GBP\n5. You have your licence and callsign — you are on air\n\nIreland:\n1. Study the IRTS (Irish Radio Transmitters Society) licence manual\n2. Contact IRTS for exam dates and locations\n3. Pass the exam and apply to ComReg for your licence\n\nOther European countries:\n- Contact your national amateur radio society for exam details\n- IARU Region 1 website lists all national societies\n- Many countries offer online study materials and some offer online exams\n\nTypical study time for Foundation/entry level: 4-8 weeks of casual study"
+      },
+      {
+        "heading": "What Equipment to Buy",
+        "body": "Start with VHF/UHF — it is simpler, cheaper, and gets you into your local community immediately.\n\nHandheld VHF/UHF (first radio):\n- Baofeng UV-5R — extremely cheap (15-25 EUR), widely used, good for learning. Not the best build quality but functional\n- Yaesu FT-60 — much better quality, reliable, around 120-150 EUR\n- Kenwood TH-D74 — premium handheld with APRS and D-STAR (400+ EUR)\n\nMobile VHF/UHF:\n- Yaesu FTM-300D — popular dual band mobile, around 250-300 EUR\n- Icom IC-2730 — solid dual band mobile, similar price\n\nHF transceiver (for long range — buy after getting Foundation):\n- Xiegu G90 — compact, affordable HF radio, popular with new licensees (350-400 EUR)\n- Yaesu FT-818ND — portable QRP radio, low power but highly portable (400-500 EUR)\n- Icom IC-7300 — excellent mid-range HF radio, the current most popular HF radio (900-1000 EUR)\n\nAlways buy second hand where possible — amateur radio equipment holds its value well and there is a large second-hand market."
+      },
+      {
+        "heading": "Joining the Community",
+        "body": "Amateur radio has a strong community — use it:\n\n- Join your local amateur radio club — most towns and cities have one. Clubs offer training, equipment loans, elmers (experienced operators who help newcomers), and social events.\n- RSGB (UK): rsgb.org\n- IRTS (Ireland): irts.ie\n- Find clubs via the national society websites\n\nEmergency communications:\n- RAYNET (UK) — Radio Amateurs' Emergency Network. Provides communications support to emergency services and civil organisations\n- Contact your local RAYNET group after getting your licence\n- Similar organisations exist across Europe through IARU national societies\n\nRepeat use:\n- Find your local repeaters using the national repeater databases\n- Most areas have active VHF/UHF repeaters that extend range significantly\n- Many repeaters have linked networks — you can talk to stations far beyond your direct radio range"
+      }
+    ]
+  },
+  {
+    "id": "getting-started-meshcore",
+    "title": "Getting Started with MeshCore",
+    "category": "Getting Started with Radio",
+    "summary": "How to buy hardware, install MeshCore, and join or build a local mesh network.",
+    "disclaimer": false,
+    "sections": [
+      {
+        "heading": "What You Need to Get Started",
+        "body": "Getting started with MeshCore requires three things:\n\n1. Compatible hardware — a LoRa-capable device\n2. MeshCore firmware installed on the device\n3. The MeshCore app on your phone or computer to communicate\n\nTotal cost for a basic setup: approximately 30-80 EUR per device depending on hardware choice.\n\nNo licence is required for LoRa operation in Europe — it uses licence-exempt ISM frequencies. Ensure your hardware uses 868 MHz for European use."
+      },
+      {
+        "heading": "Choosing Hardware",
+        "body": "Recommended hardware for European users (868 MHz band):\n\nBeginner — simplest setup:\n- LILYGO T-Echo — compact, has a built-in screen and keyboard, good battery life. Excellent first device. Around 40-60 EUR.\n- Heltec LoRa 32 V3 — cheap and functional, no screen (needs phone app), good for fixed nodes. Around 15-25 EUR.\n\nIntermediate:\n- LILYGO T-Beam — larger, has GPS, popular for mobile use. Around 35-50 EUR.\n- RAK WisBlock Starter Kit — modular, clean design, good for custom builds. Around 40-60 EUR.\n\nFixed router/repeater node:\n- Heltec LoRa 32 or RAK WisBlock in a weatherproof enclosure\n- Pair with a small solar panel (10-20W) and LiPo battery for permanent outdoor installation\n- A node at height (roof, mast) significantly extends network coverage\n\nBuy from: AliExpress (cheapest, slower shipping), Amazon EU, or specialist LoRa/IoT suppliers."
+      },
+      {
+        "heading": "Installing MeshCore Firmware",
+        "body": "MeshCore firmware is installed via USB from your computer. The process varies slightly by device but generally:\n\n1. Download the MeshCore firmware for your device from the MeshCore GitHub repository or website.\n2. Install the flashing tool — different devices use different tools (ESPTool, nrfutil, or a web flasher).\n3. Connect your device via USB.\n4. Flash the firmware following the device-specific instructions on the MeshCore documentation.\n\nFor beginners, the T-Echo with MeshCore is one of the simpler setups — good documentation exists for this combination.\n\nThe MeshCore website and GitHub repository have up-to-date flashing guides. Community forums and Discord servers are active and helpful for troubleshooting.\n\nOnce flashed, the device is ready to use — it will start scanning for other nodes automatically."
+      },
+      {
+        "heading": "The MeshCore App",
+        "body": "To send and receive messages, you need the MeshCore companion app:\n\nAndroid — MeshCore app available on Google Play or direct APK from GitHub.\niOS — Check the MeshCore GitHub for current iOS status.\nDesktop — A web interface is available for browser-based access.\n\nConnecting your device:\n- T-Echo and similar devices with Bluetooth: pair via Bluetooth in the app\n- Devices without Bluetooth: connect via USB or WiFi depending on device\n\nOnce connected:\n1. Set your node name — this is how others see you on the network\n2. Configure your channels — set up a private channel with your group (see Channels section)\n3. Send a test message\n4. Check the node list to see other nodes within range\n\nRecord your channel names, keys, and node details in the Mesh Network section of this app."
+      },
+      {
+        "heading": "Building Your Local Network",
+        "body": "A single node is a starting point. A network is the goal.\n\nSteps to grow your local mesh network:\n\n1. Get your own node working first — test it, learn how it works.\n\n2. Encourage others in your local RPN group to get a node — each one extends coverage.\n\n3. Identify a high point in your area — a roof, hill, or tall building. A router node at height can cover several kilometres and connect multiple ground-level nodes that cannot otherwise reach each other.\n\n4. Build a permanent outdoor node — a Heltec or RAK device in a waterproof enclosure with a small solar panel and battery. Mount it as high as possible. This becomes the backbone of your local network.\n\n5. Test coverage — walk around your area with a client device and see where you can and cannot reach the network. Note coverage gaps in the Mesh Network section of this app.\n\n6. Link with neighbouring areas — if a nearby town or community has nodes, a strategically placed repeater between you can link the two networks.\n\n7. Document everything — node locations, channel details, known coverage gaps, planned expansions. Use the Mesh Network section of this app.\n\nA well-built local mesh network is a genuinely resilient communications infrastructure that works when everything else fails."
+      },
+      {
+        "heading": "Where to Learn More",
+        "body": "- MeshCore website and GitHub — primary source for firmware, documentation, and updates\n- MeshCore Discord server — active community, helpful for setup questions and troubleshooting\n- LoRa Alliance — background on LoRa technology\n- RPN Mesh Network section — record your own network details\n- RPN Knowledge Library: MeshCore Guide — operating procedures and channel management\n- The Prepper Network Podcast — episodes covering mesh networking and off-grid communications\n\nMeshCore is a relatively new and actively developed project — check the GitHub and Discord for the latest firmware versions and documentation."
+      }
+    ]
+  }
+]

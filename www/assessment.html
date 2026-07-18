@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Preparedness Assessment</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main style="max-width:480px;margin:0 auto;padding-bottom:40px;">
+<div id="assess-root"></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/readiness.js"></script>
+<script src="js/recommendations.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script>
+<script>
+
+var TOTAL_STEPS = 10;
+
+// Assessment answers stored separately — never pollutes stockpile
+function loadAssessAnswers() {
+    try { return JSON.parse(localStorage.getItem('rpn_assess_answers') || '{}'); } catch(e) { return {}; }
+}
+function saveAssessAnswers(d) { localStorage.setItem('rpn_assess_answers', JSON.stringify(d)); }
+
+function getStep() { return parseInt(localStorage.getItem('rpn_assess_step') || '0', 10); }
+function setStep(n) { localStorage.setItem('rpn_assess_step', String(n)); }
+function markDone() {
+    localStorage.setItem('rpn_assessment_done', '1');
+    localStorage.removeItem('rpn_assess_step');
+}
+
+// Remove placeholder items written by old assessment versions
+function clearOldAssessmentData() {
+    var items = loadStockpile();
+    var cleaned = items.filter(function(i) { return !i._assess_type; });
+    if (cleaned.length !== items.length) saveStockpile(cleaned);
+
+    var meds = loadMedications();
+    var cleanedMeds = meds.filter(function(m) { return !m._assess_type; });
+    if (cleanedMeds.length !== meds.length) saveMedications(cleanedMeds);
+
+    var radio = loadRadio();
+    if (radio.frequencies) {
+        var cleanedF = radio.frequencies.filter(function(f) { return !f._assess_type; });
+        if (cleanedF.length !== radio.frequencies.length) { radio.frequencies = cleanedF; saveRadio(radio); }
+    }
+
+    var mesh = loadMesh();
+    if (mesh.nodes) {
+        var cleanedN = mesh.nodes.filter(function(n) { return !n._assess_type; });
+        if (cleanedN.length !== mesh.nodes.length) { mesh.nodes = cleanedN; saveMesh(mesh); }
+    }
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────
+
+function pick(options) {
+    return '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        options.map(function(o) {
+            return '<button onclick="' + o.fn + '" style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;text-align:left;cursor:pointer;width:100%;">'
+                + '<div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+                + (o.sub ? '<div style="font-size:12px;color:#7a8f78;margin-top:3px;">' + o.sub + '</div>' : '')
+                + '</button>';
+        }).join('') + '</div>';
+}
+
+function shell(stepNum, icon, title, hint, body, skipFn) {
+    var dots = '';
+    for (var i = 1; i <= TOTAL_STEPS; i++) {
+        dots += '<div style="width:' + (i <= stepNum ? '20' : '8') + 'px;height:6px;border-radius:3px;background:' + (i <= stepNum ? '#6dbf5a' : '#1a2a1a') + ';transition:width 0.3s;"></div>';
+    }
+    return '<div style="text-align:center;padding-top:16px;margin-bottom:20px;">'
+        + '<div style="font-size:40px;margin-bottom:10px;">' + icon + '</div>'
+        + '<div style="display:flex;gap:4px;justify-content:center;margin-bottom:16px;">' + dots + '</div>'
+        + '<h2 style="margin:0 0 8px;font-size:20px;color:#d4d9d4;">' + title + '</h2>'
+        + (hint ? '<p style="color:#7a8f78;font-size:13px;line-height:1.6;margin:0 0 20px;">' + hint + '</p>' : '<div style="margin-bottom:20px;"></div>')
+        + '</div>'
+        + body
+        + '<div style="text-align:center;margin-top:20px;">'
+        + '<button onclick="' + skipFn + '" style="background:none;border:none;color:#3a5a3a;font-size:13px;cursor:pointer;padding:8px;">Skip this step</button>'
+        + '</div>';
+}
+
+// ── Step renderers ─────────────────────────────────────────────────────
+
+function renderStep(n) {
+    setStep(n);
+    switch(n) {
+        case 0: return renderWelcome();
+        case 1: return renderHousehold();
+        case 2: return renderClimate();
+        case 3: return renderWater();
+        case 4: return renderFood();
+        case 5: return renderPower();
+        case 6: return renderMedical();
+        case 7: return renderComms();
+        case 8: return renderSkills();
+        case 9: return renderCommunity();
+        case 10: return renderResults();
+        default: return renderResults();
+    }
+}
+
+function renderWelcome() {
+    return '<div style="text-align:center;padding:24px 0 0;">'
+        + '<div style="font-size:52px;margin-bottom:14px;">&#128737;</div>'
+        + '<h2 style="margin:0 0 10px;font-size:22px;color:#d4d9d4;">Preparedness Assessment</h2>'
+        + '<p style="color:#7a8f78;font-size:14px;line-height:1.7;margin:0 0 24px;">Answer honestly — this is an estimate only. Add your real items to the stockpile afterwards for an accurate score.</p>'
+        + '<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;margin-bottom:24px;text-align:left;">'
+        + '<div style="font-size:12px;color:#7a8f78;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">What we will assess</div>'
+        + '<div style="font-size:13px;color:#d4d9d4;line-height:2;">&#9745; Household &nbsp; &#9745; Water &nbsp; &#9745; Food &nbsp; &#9745; Power<br>&#9745; Medical &nbsp; &#9745; Communications &nbsp; &#9745; Plans &amp; Drills</div>'
+        + '</div>'
+        + '<button onclick="goStep(1)" style="display:block;width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">Start assessment &rarr;</button>'
+        + '<a href="home.html" style="display:block;font-size:13px;color:#3a5a3a;text-decoration:none;padding:8px;">Skip &mdash; go straight to the app</a>'
+        + '</div>';
+}
+
+function renderHousehold() {
+    var hh = loadHousehold();
+    var current = (hh.adults || 0) + (hh.children || 0);
+    var tiles = [1,2,3,4,5,6].map(function(n) {
+        var label = n === 1 ? 'Just me' : n + ' people';
+        var active = n === current ? ';border-color:#6dbf5a;background:#0f2a0f;' : '';
+        return '<button onclick="setHousehold(' + n + ')" style="padding:18px 8px;background:#1a2a1a;border:1px solid #2a4a2a' + active + ';border-radius:10px;color:#d4d9d4;cursor:pointer;width:100%;">'
+            + '<div style="font-size:24px;font-weight:700;">' + n + (n===6?'+':'') + '</div>'
+            + '<div style="font-size:11px;color:#7a8f78;margin-top:4px;">' + label + '</div>'
+            + '</button>';
+    }).join('');
+    return shell(1, '&#128106;', 'Who are you preparing for?',
+        'This tells the app how much food, water and supplies your household needs.',
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px;">' + tiles + '</div>',
+        'goStep(2)');
+}
+
+function renderClimate() {
+    var current = localStorage.getItem('rpn_climate') || '';
+    var opts = [
+        { id:'hot_dry',   label:'Hot / Dry',    sub:'Desert, semi-arid, Mediterranean' },
+        { id:'hot_humid', label:'Hot / Humid',  sub:'Tropical, subtropical, coastal' },
+        { id:'temperate', label:'Temperate',    sub:'Most of UK, Western Europe, NZ' },
+        { id:'cold',      label:'Cold',         sub:'Northern Europe, Canada, higher altitude' },
+        { id:'very_cold', label:'Very Cold',    sub:'Arctic, subarctic, alpine winters' },
+    ];
+    var btns = opts.map(function(o) {
+        var active = o.id === current ? ';border-color:#6dbf5a;background:#0f2a0f;' : '';
+        return '<button onclick="setClimate(\'' + o.id + '\')" style="background:#1a2a1a;border:1px solid #2a4a2a' + active + ';border-radius:10px;padding:12px 16px;text-align:left;cursor:pointer;width:100%;">'
+            + '<div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:2px;">' + o.sub + '</div>'
+            + '</button>';
+    }).join('');
+    return shell(2, '&#127756;', 'What is your climate?',
+        'No exact location needed. This shapes your power and water recommendations.',
+        '<div style="display:flex;flex-direction:column;gap:8px;">' + btns + '</div>',
+        'goStep(3)');
+}
+
+function renderWater() {
+    var hh = loadHousehold();
+    var people = Math.max(1, (hh.adults || 1) + (hh.children || 0));
+    var lpd = people * 2; // 2 litres per person per day
+    return shell(3, '&#128167;', 'How much water do you have stored?',
+        'Count bottled water, containers and any other stored drinking water. (' + people + ' ' + (people === 1 ? 'person needs' : 'people need') + ' ' + lpd + ' litres per day.)',
+        pick([
+            { label:'None yet',            sub:'I have not started storing water',             fn:'setWater(0)' },
+            { label:'A few litres',        sub:'Under ' + lpd + 'L — less than 1 day',        fn:'setWater(' + Math.round(lpd * 0.5) + ')' },
+            { label:'1–3 days',           sub:lpd + '–' + (lpd*3) + ' litres',               fn:'setWater(' + Math.round(lpd * 2) + ')' },
+            { label:'3–7 days',           sub:(lpd*3) + '–' + (lpd*7) + ' litres',           fn:'setWater(' + Math.round(lpd * 5) + ')' },
+            { label:'1–2 weeks',          sub:(lpd*7) + '–' + (lpd*14) + ' litres',          fn:'setWater(' + Math.round(lpd * 10) + ')' },
+            { label:'More than 2 weeks',  sub:'Over ' + (lpd*14) + ' litres',                fn:'setWater(' + Math.round(lpd * 21) + ')' },
+        ]),
+        'goStep(4)');
+}
+
+function renderFood() {
+    var hh = loadHousehold();
+    var people = Math.max(1, (hh.adults || 1) + (hh.children || 0));
+    var kcalDay = people * 2000;
+    return shell(4, '&#127827;', 'How much food do you have stored?',
+        'Tins, dried goods, rice, pasta — anything with a long shelf life. (' + people + ' ' + (people === 1 ? 'person needs' : 'people need') + ' ~' + kcalDay.toLocaleString() + ' kcal/day.)',
+        pick([
+            { label:'None yet',           sub:'No stockpile started',                        fn:'setFood(0)' },
+            { label:'Less than 3 days',   sub:'Some basics, not much',                       fn:'setFood(' + Math.round(kcalDay * 2) + ')' },
+            { label:'3–7 days',          sub:'A decent start',                               fn:'setFood(' + Math.round(kcalDay * 5) + ')' },
+            { label:'1–2 weeks',         sub:'Solid short-term supply',                      fn:'setFood(' + Math.round(kcalDay * 10) + ')' },
+            { label:'2–4 weeks',         sub:'Good stockpile',                               fn:'setFood(' + Math.round(kcalDay * 21) + ')' },
+            { label:'More than a month', sub:'Serious long-term supply',                     fn:'setFood(' + Math.round(kcalDay * 45) + ')' },
+        ]),
+        'goStep(5)');
+}
+
+function renderPower() {
+    var answers = loadAssessAnswers();
+    var current = answers.power || '';
+    var opts = [
+        { id:'none',      label:'Nothing yet',          sub:'No backup power at all' },
+        { id:'small',     label:'Small power bank',     sub:'Up to 20,000 mAh / ~74Wh' },
+        { id:'large',     label:'Large battery pack',   sub:'100–500Wh capacity' },
+        { id:'generator', label:'Generator',            sub:'Petrol, diesel or propane' },
+        { id:'solar',     label:'Solar + battery',      sub:'Panel and battery storage' },
+    ];
+    var btns = opts.map(function(o) {
+        var active = o.id === current ? ';border-color:#6dbf5a;background:#0f2a0f;' : '';
+        return '<button onclick="setPower(\'' + o.id + '\')" style="background:#1a2a1a;border:1px solid #2a4a2a' + active + ';border-radius:10px;padding:14px 16px;text-align:left;cursor:pointer;width:100%;">'
+            + '<div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:3px;">' + o.sub + '</div>'
+            + '</button>';
+    }).join('');
+    return shell(5, '&#9889;', 'Do you have backup power?',
+        'Anything that works when the grid goes down.',
+        '<div style="display:flex;flex-direction:column;gap:10px;">' + btns + '</div>',
+        'goStep(6)');
+}
+
+function renderMedical() {
+    var answers = loadAssessAnswers();
+    var fa = answers.first_aid;
+    var ms = answers.medical || '';
+
+    function faStyle(val) {
+        return 'flex:1;padding:12px;background:' + (fa === val ? '#0f2a0f' : '#1a2a1a') + ';border:1px solid ' + (fa === val ? '#6dbf5a' : '#2a4a2a') + ';border-radius:8px;color:#d4d9d4;cursor:pointer;font-size:14px;font-family:inherit;';
+    }
+    function medStyle(id) {
+        return 'background:' + (ms === id ? '#0f2a0f' : '#1a2a1a') + ';border:1px solid ' + (ms === id ? '#6dbf5a' : '#2a4a2a') + ';border-radius:10px;padding:12px 16px;text-align:left;cursor:pointer;width:100%;font-family:inherit;';
+    }
+
+    var body = '<div style="display:flex;flex-direction:column;gap:20px;">'
+        + '<div>'
+        + '<div style="font-size:13px;font-weight:600;color:#d4d9d4;margin-bottom:10px;">Do you have a first aid kit or medical supplies?</div>'
+        + '<div style="display:flex;gap:10px;">'
+        + '<button id="fa_yes" onclick="selectFirstAid(true)" style="' + faStyle(true) + '">Yes</button>'
+        + '<button id="fa_no" onclick="selectFirstAid(false)" style="' + faStyle(false) + '">No</button>'
+        + '</div>'
+        + '</div>'
+        + '<div>'
+        + '<div style="font-size:13px;font-weight:600;color:#d4d9d4;margin-bottom:10px;">Do you take regular prescription medications?</div>'
+        + '<div style="display:flex;flex-direction:column;gap:8px;">'
+        + '<button id="med_none" onclick="selectMedStatus(\'none\')" style="' + medStyle('none') + '"><div style="font-size:14px;color:#d4d9d4;font-weight:600;">No regular medications</div><div style="font-size:12px;color:#7a8f78;margin-top:3px;">No prescriptions needed</div></button>'
+        + '<button id="med_good" onclick="selectMedStatus(\'good\')" style="' + medStyle('good') + '"><div style="font-size:14px;color:#d4d9d4;font-weight:600;">Yes &#8212; 30+ days supply</div><div style="font-size:12px;color:#7a8f78;margin-top:3px;">Well stocked</div></button>'
+        + '<button id="med_ok" onclick="selectMedStatus(\'ok\')" style="' + medStyle('ok') + '"><div style="font-size:14px;color:#d4d9d4;font-weight:600;">Yes &#8212; 14&#8211;30 days supply</div><div style="font-size:12px;color:#7a8f78;margin-top:3px;">Moderate supply</div></button>'
+        + '<button id="med_low" onclick="selectMedStatus(\'low\')" style="' + medStyle('low') + '"><div style="font-size:14px;color:#d4d9d4;font-weight:600;">Yes &#8212; under 14 days</div><div style="font-size:12px;color:#7a8f78;margin-top:3px;">Running low on some medications</div></button>'
+        + '</div>'
+        + '</div>'
+        + '<button onclick="saveMedical()" style="width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:14px;border:none;cursor:pointer;">Continue &rarr;</button>'
+        + '</div>';
+
+    return shell(6, '&#128138;', 'Medical readiness', null, body, 'goStep(7)');
+}
+
+function renderComms() {
+    var answers = loadAssessAnswers();
+    var saved = answers.comms || [];
+    var opts = [
+        { id:'pmr',  label:'Handheld radio (PMR/CB)',   sub:'Short-range local radio, no licence needed' },
+        { id:'ham',  label:'Amateur radio (licensed)',  sub:'HF/VHF/UHF — greater range and flexibility' },
+        { id:'sat',  label:'Satellite communicator',   sub:'Garmin inReach, Spot or similar' },
+        { id:'mesh', label:'MeshCore / LoRa node',     sub:'Off-grid mesh text messaging' },
+        { id:'cb',   label:'CB radio',                 sub:'Short-range vehicle or base station' },
+        { id:'gmrs', label:'GMRS radio (US)',           sub:'Higher power, longer range than PMR' },
+    ];
+
+    var checks = opts.map(function(o) {
+        var checked = saved.indexOf(o.id) !== -1 ? ' checked' : '';
+        return '<label style="display:flex;align-items:flex-start;gap:12px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;cursor:pointer;">'
+            + '<input type="checkbox" id="comms_' + o.id + '" value="' + o.id + '"' + checked + ' style="margin-top:3px;width:18px;height:18px;accent-color:#6dbf5a;flex-shrink:0;cursor:pointer;">'
+            + '<div>'
+            + '<div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:3px;">' + o.sub + '</div>'
+            + '</div>'
+            + '</label>';
+    }).join('');
+
+    var body = '<div style="display:flex;flex-direction:column;gap:10px;">'
+        + checks
+        + '<p style="font-size:12px;color:#4a5e48;margin:4px 0 0;">If you have nothing beyond a phone, leave all boxes unticked.</p>'
+        + '<button onclick="saveComms()" style="width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:14px;border:none;cursor:pointer;margin-top:4px;">Continue &rarr;</button>'
+        + '</div>';
+
+    return shell(7, '&#128251;', 'What communications do you have?',
+        'Select all that apply. What could you use if mobile networks went down?',
+        body, 'goStep(8)');
+}
+
+function renderSkills() {
+    var answers = loadAssessAnswers();
+    var saved = answers.skills || [];
+    var opts = [
+        { id:'firstaid',    label:'First aid training',       sub:'CPR, bleeding control, or emergency first aid course' },
+        { id:'radio',       label:'Radio / comms skills',    sub:'Able to operate your radio and communicate off-grid' },
+        { id:'hamlicence',  label:'Amateur radio licence',   sub:'Hold a Foundation, Intermediate, or Full amateur licence' },
+        { id:'navigation',  label:'Navigation skills',       sub:'Map and compass — can navigate without GPS' },
+        { id:'fire',        label:'Fire lighting & cooking', sub:'Can light a fire and cook without mains power' },
+        { id:'water',       label:'Water purification',      sub:'Knows how to make water safe to drink in the field' },
+    ];
+
+    var checks = opts.map(function(o) {
+        var checked = saved.indexOf(o.id) !== -1 ? ' checked' : '';
+        return '<label style="display:flex;align-items:flex-start;gap:12px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;cursor:pointer;">'
+            + '<input type="checkbox" id="skill_' + o.id + '" value="' + o.id + '"' + checked + ' style="margin-top:3px;width:18px;height:18px;accent-color:#6dbf5a;flex-shrink:0;cursor:pointer;">'
+            + '<div><div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:3px;">' + o.sub + '</div></div>'
+            + '</label>';
+    }).join('');
+
+    var body = '<div style="display:flex;flex-direction:column;gap:10px;">'
+        + checks
+        + '<p style="font-size:12px;color:#4a5e48;margin:4px 0 0;">Only tick what you can actually do under pressure, not what you have read about.</p>'
+        + '<button onclick="saveSkills()" style="width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:14px;border:none;cursor:pointer;margin-top:4px;">Continue &rarr;</button>'
+        + '</div>';
+
+    return shell(8, '&#127947;', 'What skills do you have?',
+        'Tick skills you have actively practised — not just read about.',
+        body, 'goStep(9)');
+}
+
+function renderCommunity() {
+    var answers = loadAssessAnswers();
+    var saved = answers.community || [];
+    var opts = [
+        { id:'contacts', label:'Trusted contacts',         sub:'People who know your plan and can be reached in a crisis' },
+        { id:'network',  label:'Local support network',    sub:'Neighbours or local groups you could call on for help' },
+        { id:'mutual',   label:'Mutual aid group',         sub:'A preparedness or mutual aid group you are part of' },
+        { id:'family',   label:'Nearby family or friends', sub:'Family or close friends nearby who are part of your plan' },
+    ];
+
+    var checks = opts.map(function(o) {
+        var checked = saved.indexOf(o.id) !== -1 ? ' checked' : '';
+        return '<label style="display:flex;align-items:flex-start;gap:12px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;cursor:pointer;">'
+            + '<input type="checkbox" id="comm_' + o.id + '" value="' + o.id + '"' + checked + ' style="margin-top:3px;width:18px;height:18px;accent-color:#6dbf5a;flex-shrink:0;cursor:pointer;">'
+            + '<div><div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + o.label + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:3px;">' + o.sub + '</div></div>'
+            + '</label>';
+    }).join('');
+
+    var body = '<div style="display:flex;flex-direction:column;gap:10px;">'
+        + checks
+        + '<p style="font-size:12px;color:#4a5e48;margin:4px 0 0;">A plan shared with no one is not a plan.</p>'
+        + '<button onclick="saveCommunity()" style="width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:14px;border:none;cursor:pointer;margin-top:4px;">Continue &rarr;</button>'
+        + '</div>';
+
+    return shell(9, '&#127757;', 'Community &amp; coordination',
+        'Preparedness is stronger when it is shared. Tick what applies.',
+        body, 'goStep(10)');
+}
+
+function renderResults() {
+    markDone();
+    var answers = loadAssessAnswers();
+    var score   = computeEstimatedScore(answers);
+    var sup     = score.suppliesScore;
+    var red     = score.readinessScore;
+    var overall = score.resilience;
+
+    function col(pct) { return pct >= 75 ? '#6dbf5a' : pct >= 50 ? '#d4a017' : '#c0392b'; }
+    function resLabel(pct) { return pct >= 90 ? 'Seriously prepared' : pct >= 75 ? 'Well prepared' : pct >= 50 ? 'Work to do' : pct >= 25 ? 'Significant gaps' : 'Not prepared'; }
+
+    function catBar(c) {
+        var pct = c.possible > 0 ? Math.round(c.earned / c.possible * 100) : 0;
+        var cc  = pct >= 60 ? '#6dbf5a' : pct >= 30 ? '#d4a017' : '#3a4a3a';
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+            + '<div style="width:130px;font-size:12px;color:#7a8f78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + c.label + '</div>'
+            + '<div style="flex:1;background:#0f1a0f;border-radius:3px;height:5px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + pct + '%;background:' + cc + ';border-radius:3px;"></div></div>'
+            + '<div style="width:34px;text-align:right;font-size:11px;color:' + cc + ';font-weight:600;">' + pct + '%</div>'
+            + '</div>';
+    }
+
+    var suppliesCatHtml = score.suppliesCategories.map(catBar).join('');
+    var readinessCatHtml = score.readinessCategories.map(catBar).join('');
+
+    return '<div style="padding-top:16px;">'
+        + '<div style="text-align:center;margin-bottom:20px;">'
+        + '<div style="font-size:44px;margin-bottom:10px;">&#10003;</div>'
+        + '<h2 style="margin:0 0 6px;font-size:20px;color:#d4d9d4;">Assessment complete</h2>'
+        + '<p style="color:#7a8f78;font-size:13px;margin:0;">Estimated scores based on your answers.</p>'
+        + '</div>'
+
+        // Two-pillar side-by-side
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'
+        + '<div style="background:#131f13;border:1px solid #2a4a2a;border-radius:10px;padding:14px;text-align:center;">'
+        + '<div style="font-size:28px;font-weight:700;color:' + col(sup) + ';line-height:1;">' + sup + '%</div>'
+        + '<div style="font-size:11px;color:#7a8f78;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">Supplies</div>'
+        + '</div>'
+        + '<div style="background:#131f13;border:1px solid #2a4a2a;border-radius:10px;padding:14px;text-align:center;">'
+        + '<div style="font-size:28px;font-weight:700;color:' + col(red) + ';line-height:1;">' + red + '%</div>'
+        + '<div style="font-size:11px;color:#7a8f78;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">Readiness</div>'
+        + '</div>'
+        + '</div>'
+
+        // Overall resilience
+        + '<div style="background:#131f13;border:1px solid #2a4a2a;border-radius:10px;padding:14px;margin-bottom:16px;">'
+        + '<div style="display:flex;align-items:center;gap:14px;">'
+        + '<div style="text-align:center;flex-shrink:0;">'
+        + '<div style="font-size:36px;font-weight:700;color:' + col(overall) + ';line-height:1;">' + overall + '%</div>'
+        + '<div style="font-size:11px;color:' + col(overall) + ';font-weight:600;margin-top:2px;">' + resLabel(overall) + '</div>'
+        + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:11px;color:#7a8f78;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;">Overall Resilience</div>'
+        + '<div style="background:#0f1a0f;border-radius:4px;height:8px;overflow:hidden;">'
+        + '<div style="height:100%;width:' + overall + '%;background:' + col(overall) + ';border-radius:4px;"></div>'
+        + '</div>'
+        + '<div style="font-size:11px;color:#4a5e48;margin-top:5px;">(Supplies + Readiness) ÷ 2</div>'
+        + '</div></div></div>'
+
+        // Breakdown
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:10px;padding:14px;margin-bottom:16px;">'
+        + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Supplies breakdown</div>'
+        + suppliesCatHtml
+        + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin:12px 0 10px;">Readiness breakdown</div>'
+        + readinessCatHtml
+        + '</div>'
+
+        + '<div style="background:#1a2010;border:1px solid #2a3a1a;border-radius:8px;padding:12px 14px;margin-bottom:20px;">'
+        + '<div style="font-size:12px;color:#7a8f78;line-height:1.6;">'
+        + '<strong style="color:#6dbf5a;">This is an estimate.</strong> Add your real items to the Stockpile and skills will be verified over time. Scores update automatically.'
+        + '</div></div>'
+        + '<a href="stockpile.html" style="display:block;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;text-align:center;text-decoration:none;font-size:15px;margin-bottom:10px;">Add my real items &rarr;</a>'
+        + '<a href="home.html" style="display:block;background:#1a2a1a;border:1px solid #2a4a2a;color:#7a8f78;padding:12px;border-radius:8px;text-align:center;text-decoration:none;font-size:13px;">Go to dashboard</a>'
+        + '</div>';
+}
+
+// ── Score estimator (uses assessment answers, not real stockpile) ───────
+
+function computeEstimatedScore(answers) {
+    var hh      = loadHousehold();
+    var people  = Math.max(1, (hh.adults || 1) + (hh.children || 0));
+    var lpd     = people * 2;
+    var waterDays = lpd > 0 ? (answers.water_litres || 0) / lpd : 0;
+    var foodDays  = answers.food_days || 0;
+
+    // ── SUPPLIES ─────────────────────────────────────────
+    // Food (25 pts)
+    var food = 0;
+    if (foodDays >= 3)  food += 6;
+    if (foodDays >= 7)  food += 6;
+    if (foodDays >= 14) food += 7;
+    if (foodDays >= 30) food += 6;
+
+    // Water (25 pts)
+    var water = 0;
+    if (waterDays >= 3)  water += 6;
+    if (waterDays >= 7)  water += 6;
+    if (waterDays >= 14) water += 7;
+    if (waterDays >= 30) water += 6;
+
+    // Medical Supplies (15 pts)
+    var med = 0;
+    var hasFa  = !!answers.first_aid;
+    var mstat  = answers.medical || 'none';
+    var noMeds = mstat === 'none';
+    if (hasFa) med += 7;
+    if (noMeds && hasFa)                 med += 4 + 4;
+    else if (!noMeds && mstat !== 'low') med += 4;
+    if (!noMeds && mstat === 'good')     med += 4;
+
+    // Power (20 pts)
+    var power = 0;
+    var ptype = answers.power || 'none';
+    var wh = { none:0, small:74, large:300, generator:0, solar:300 }[ptype] || 0;
+    if (ptype !== 'none')  power += 5;
+    if (wh >= 100)         power += 5;
+    if (wh >= 500)         power += 5;
+    if (ptype === 'solar') power += 5;
+
+    // Communications Equipment (15 pts)
+    var comms   = answers.comms || [];
+    var hasRadio = comms.indexOf('pmr') !== -1 || comms.indexOf('ham') !== -1 || comms.indexOf('cb') !== -1 || comms.indexOf('gmrs') !== -1;
+    var hasHam   = comms.indexOf('ham') !== -1;
+    var hasMesh  = comms.indexOf('mesh') !== -1;
+    var hasSat   = comms.indexOf('sat') !== -1;
+    var comm = 0;
+    if (hasRadio || hasMesh || hasSat) comm += 6;
+    if (hasHam)                        comm += 4;
+    if (hasMesh)                       comm += 3;
+    if (hasSat)                        comm += 2;
+    comm = Math.min(comm, 15);
+
+    var suppliesCategories = [
+        { label:'Food',                   earned: food,  possible: 25 },
+        { label:'Water',                  earned: water, possible: 25 },
+        { label:'Medical Supplies',       earned: med,   possible: 15 },
+        { label:'Power',                  earned: power, possible: 20 },
+        { label:'Communications Equip.',  earned: comm,  possible: 15 },
+    ];
+    var suppliesEarned   = suppliesCategories.reduce(function(s,c){return s+c.earned;},0);
+    var suppliesPossible = suppliesCategories.reduce(function(s,c){return s+c.possible;},0);
+    var suppliesScore    = Math.round(suppliesEarned / suppliesPossible * 100);
+
+    // ── READINESS ─────────────────────────────────────────
+    // Planning: always 0 from assessment (real data from checklists)
+    var planEarned = 0;
+
+    // Skills (30 pts — 6 pts each)
+    var skills = answers.skills || [];
+    var skillMap = { firstaid:6, radio:6, navigation:6, fire:6, water:6 };
+    var skillEarned = 0;
+    Object.keys(skillMap).forEach(function(k) { if (skills.indexOf(k) !== -1) skillEarned += skillMap[k]; });
+
+    // Drills: always 0 from assessment (real data from drills log)
+    var drillEarned = 0;
+
+    // Community (30 pts — based on answers)
+    var community = answers.community || [];
+    var commMap = { contacts:8, network:7, mutual:8, family:7 };
+    var commEarned = 0;
+    Object.keys(commMap).forEach(function(k) { if (community.indexOf(k) !== -1) commEarned += commMap[k]; });
+
+    var readinessCategories = [
+        { label:'Planning',          earned: planEarned,  possible: 15 },
+        { label:'Skills',            earned: skillEarned, possible: 30 },
+        { label:'Training & Drills', earned: drillEarned, possible: 25 },
+        { label:'Community',         earned: commEarned,  possible: 30 },
+    ];
+    var readinessEarned   = readinessCategories.reduce(function(s,c){return s+c.earned;},0);
+    var readinessPossible = readinessCategories.reduce(function(s,c){return s+c.possible;},0);
+    var readinessScore    = Math.round(readinessEarned / readinessPossible * 100);
+
+    var resilience = Math.round((suppliesScore + readinessScore) / 2);
+
+    return {
+        suppliesScore:       suppliesScore,
+        readinessScore:      readinessScore,
+        resilience:          resilience,
+        suppliesCategories:  suppliesCategories,
+        readinessCategories: readinessCategories,
+    };
+}
+
+// ── Action handlers ────────────────────────────────────────────────────
+
+function goStep(n) { document.getElementById('assess-root').innerHTML = renderStep(n); }
+
+function setHousehold(n) {
+    var hh = loadHousehold();
+    hh.adults = n; hh.children = 0;
+    saveHousehold(hh);
+    var answers = loadAssessAnswers();
+    answers.people = n;
+    saveAssessAnswers(answers);
+    goStep(2);
+}
+
+function setClimate(id) {
+    localStorage.setItem('rpn_climate', id);
+    var zoneMap = { hot_dry:'high', hot_humid:'moderate', temperate:'moderate', cold:'low', very_cold:'low' };
+    localStorage.setItem('rpn_solar_zone', zoneMap[id] || 'moderate');
+    var answers = loadAssessAnswers();
+    answers.climate = id;
+    saveAssessAnswers(answers);
+    goStep(3);
+}
+
+function setWater(litres) {
+    var answers = loadAssessAnswers();
+    answers.water_litres = litres;
+    saveAssessAnswers(answers);
+    goStep(4);
+}
+
+function setFood(kcal) {
+    var hh      = loadHousehold();
+    var people  = Math.max(1, (hh.adults || 1) + (hh.children || 0));
+    var kcalDay = people * 2000;
+    var days    = kcalDay > 0 ? Math.round((kcal / kcalDay) * 10) / 10 : 0;
+    var answers = loadAssessAnswers();
+    answers.food_days = days;
+    saveAssessAnswers(answers);
+    goStep(5);
+}
+
+function setPower(type) {
+    var answers = loadAssessAnswers();
+    answers.power = type;
+    saveAssessAnswers(answers);
+    goStep(6);
+}
+
+// Medical step — interactive selection before saving
+function selectFirstAid(val) {
+    var answers = loadAssessAnswers();
+    answers.first_aid = val;
+    saveAssessAnswers(answers);
+    var yes = document.getElementById('fa_yes');
+    var no  = document.getElementById('fa_no');
+    if (yes) { yes.style.borderColor = val  ? '#6dbf5a' : '#2a4a2a'; yes.style.background = val  ? '#0f2a0f' : '#1a2a1a'; }
+    if (no)  { no.style.borderColor  = !val ? '#6dbf5a' : '#2a4a2a'; no.style.background  = !val ? '#0f2a0f' : '#1a2a1a'; }
+}
+
+function selectMedStatus(status) {
+    var answers = loadAssessAnswers();
+    answers.medical = status;
+    saveAssessAnswers(answers);
+    ['none','good','ok','low'].forEach(function(s) {
+        var btn = document.getElementById('med_' + s);
+        if (btn) { btn.style.borderColor = s === status ? '#6dbf5a' : '#2a4a2a'; btn.style.background = s === status ? '#0f2a0f' : '#1a2a1a'; }
+    });
+}
+
+function saveMedical() {
+    goStep(7);
+}
+
+function saveComms() {
+    var opts = ['pmr','ham','sat','mesh','cb','gmrs'];
+    var selected = opts.filter(function(id) {
+        var el = document.getElementById('comms_' + id);
+        return el && el.checked;
+    });
+    var answers = loadAssessAnswers();
+    answers.comms = selected;
+    saveAssessAnswers(answers);
+    goStep(8);
+}
+
+function saveSkills() {
+    var opts = ['firstaid','radio','navigation','fire','water'];
+    var selected = opts.filter(function(id) {
+        var el = document.getElementById('skill_' + id);
+        return el && el.checked;
+    });
+    var answers = loadAssessAnswers();
+    answers.skills = selected;
+    saveAssessAnswers(answers);
+    goStep(9);
+}
+
+function saveCommunity() {
+    var opts = ['contacts','network','mutual','family'];
+    var selected = opts.filter(function(id) {
+        var el = document.getElementById('comm_' + id);
+        return el && el.checked;
+    });
+    var answers = loadAssessAnswers();
+    answers.community = selected;
+    saveAssessAnswers(answers);
+    goStep(10);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+
+function init() {
+    renderNav('');
+    clearOldAssessmentData();
+    var urlStep = parseInt(new URLSearchParams(window.location.search).get('step') || '0', 10);
+    var step = (urlStep >= 1 && urlStep <= TOTAL_STEPS) ? urlStep : getStep();
+    document.getElementById('assess-root').innerHTML = renderStep(step);
+}
+
+init();
+</script>
+</body>
+</html>

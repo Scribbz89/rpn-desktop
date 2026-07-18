@@ -1,0 +1,1061 @@
+[
+  {
+    "id": "power-outage",
+    "title": "Power Outage",
+    "icon": "⚡",
+    "description": "The power has gone out. Work through this to assess the situation and take the right steps.",
+    "start": "how-long",
+    "nodes": {
+      "how-long": {
+        "question": "How long has the power been out?",
+        "answers": [
+          { "text": "Less than 1 hour", "next": "check-neighbours" },
+          { "text": "1 to 6 hours", "next": "check-neighbours" },
+          { "text": "More than 6 hours", "next": "extended-outage" },
+          { "text": "I don't know", "next": "check-neighbours" }
+        ]
+      },
+      "check-neighbours": {
+        "question": "Is it just your property or is the wider area affected?",
+        "info": "Check your fuse box first. If your neighbours also have no power, it's a grid issue.",
+        "answers": [
+          { "text": "Just my property", "next": "check-fusebox" },
+          { "text": "Wider area affected", "next": "report-outage" },
+          { "text": "I don't know yet", "next": "action-check-outside" }
+        ]
+      },
+      "check-fusebox": {
+        "question": "Have you checked your fuse box or consumer unit?",
+        "info": "Look for any tripped breakers — they will be in the off position or middle position. Reset them by switching fully off then back on.",
+        "answers": [
+          { "text": "Yes — a breaker was tripped and I reset it", "next": "power-restored" },
+          { "text": "Yes — all breakers look fine but still no power", "next": "report-outage" },
+          { "text": "No — I need to do this now", "next": "action-fusebox" }
+        ]
+      },
+      "action-fusebox": {
+        "action": true,
+        "instruction": "Go to your fuse box / consumer unit now. Look for any switches in the off or middle position. Switch them fully off then back on. If one immediately trips again, leave it off — there may be a fault on that circuit.",
+        "next": "check-fusebox-result"
+      },
+      "check-fusebox-result": {
+        "question": "What happened when you checked the fuse box?",
+        "answers": [
+          { "text": "Found and reset a tripped breaker — power restored", "next": "power-restored" },
+          { "text": "A breaker keeps tripping — possible fault", "next": "circuit-fault" },
+          { "text": "Everything looked fine — still no power", "next": "report-outage" }
+        ]
+      },
+      "circuit-fault": {
+        "action": true,
+        "instruction": "Leave the faulty breaker in the OFF position. Unplug all devices on that circuit. Do not attempt to investigate the fault yourself — call a qualified electrician. If you smell burning or see scorch marks, evacuate and call emergency services.",
+        "next": "report-outage"
+      },
+      "action-check-outside": {
+        "action": true,
+        "instruction": "Look outside — are street lights on? Do neighbouring properties have lights? This tells you whether it is a local grid issue or just your property.",
+        "next": "check-neighbours"
+      },
+      "report-outage": {
+        "action": true,
+        "instruction": "Report the outage to your electricity network operator. UK: call 105. Ireland: call 1800 372 999. Other EU countries: check your provider's emergency number — have it saved in your phone before you need it. Keep the line free for emergencies.",
+        "next": "extended-outage"
+      },
+      "extended-outage": {
+        "question": "How are your immediate needs?",
+        "info": "For outages over a few hours, start working through your preparedness supplies.",
+        "answers": [
+          { "text": "We are warm and have food and water", "next": "lighting-check" },
+          { "text": "We need heating", "next": "heating-action" },
+          { "text": "We need food or water", "next": "food-water-action" }
+        ]
+      },
+      "heating-action": {
+        "action": true,
+        "instruction": "Use your backup heating — wood burner, gas heater, or consolidate the household into one room to retain heat. Ensure any gas or fuel heater is adequately ventilated. Do NOT use BBQs or petrol generators indoors — carbon monoxide risk. Dress in layers and use sleeping bags if needed.",
+        "next": "lighting-check"
+      },
+      "food-water-action": {
+        "action": true,
+        "instruction": "Use your stored water. For cooking, use a camp stove or gas burner outdoors or in a well ventilated area. Eat perishables from the fridge first — they will last 4 hours in a closed fridge. Do not open the freezer unless necessary — food stays frozen for 24-48 hours.",
+        "next": "lighting-check"
+      },
+      "lighting-check": {
+        "question": "Do you have adequate lighting?",
+        "answers": [
+          { "text": "Yes — torches and candles available", "next": "comms-check" },
+          { "text": "No — limited lighting", "next": "lighting-action" }
+        ]
+      },
+      "lighting-action": {
+        "action": true,
+        "instruction": "Locate your torches and candles now. Use torches as your primary light source. Only use candles with extreme caution — never leave them unattended and keep away from children and flammable materials.",
+        "next": "comms-check"
+      },
+      "comms-check": {
+        "question": "Can you receive information and communicate?",
+        "answers": [
+          { "text": "Yes — phone working and I have a radio", "next": "monitor-situation" },
+          { "text": "Phone is low on battery", "next": "charge-phone" },
+          { "text": "No radio and limited comms", "next": "comms-action" }
+        ]
+      },
+      "charge-phone": {
+        "action": true,
+        "instruction": "Connect your phone to your power bank now. Put it in low power mode to extend battery life. Turn off WiFi and Bluetooth if not needed. Only use the phone for essential communications.",
+        "next": "monitor-situation"
+      },
+      "comms-action": {
+        "action": true,
+        "instruction": "Use your battery or hand-crank radio to receive emergency broadcasts. Check your national emergency broadcast frequency. If you have PMR446 radios, check in with your local group. Conserve phone battery for emergencies only.",
+        "next": "monitor-situation"
+      },
+      "monitor-situation": {
+        "action": true,
+        "instruction": "Monitor the situation. Listen to emergency broadcasts for updates. Check in with neighbours, especially elderly or vulnerable people. If the outage continues beyond 24 hours, consider whether you need to relocate to a warmer location.",
+        "next": "summary"
+      },
+      "power-restored": {
+        "action": true,
+        "instruction": "Power has been restored. Check all appliances are working correctly. Restock any supplies you used. Consider whether this highlights any gaps in your preparedness.",
+        "next": "summary"
+      },
+      "summary": {
+        "summary": true,
+        "title": "Power Outage — Actions Complete",
+        "points": [
+          "Check fuse box for tripped breakers",
+          "Report outage to your network operator",
+          "Use backup heating if needed — ensure ventilation",
+          "Eat perishables first, preserve frozen food",
+          "Use torches and candles safely",
+          "Keep phone charged via power bank",
+          "Monitor situation via battery radio",
+          "Check on vulnerable neighbours"
+        ],
+        "checklists": ["power-outage", "comms-plan"]
+      }
+    }
+  },
+  {
+    "id": "medical-emergency",
+    "title": "Medical Emergency",
+    "icon": "",
+    "description": "Someone needs medical attention. Work through this to assess and respond.",
+    "start": "conscious",
+    "nodes": {
+      "conscious": {
+        "question": "Is the person conscious and breathing?",
+        "info": "Check for response — call their name, tap their shoulder firmly. Look for chest movement.",
+        "answers": [
+          { "text": "Yes — conscious and breathing", "next": "severity" },
+          { "text": "Unconscious but breathing", "next": "recovery-position" },
+          { "text": "Not breathing or not sure", "next": "call-emergency" }
+        ]
+      },
+      "call-emergency": {
+        "action": true,
+        "instruction": "CALL 112 NOW — 112 works in all EU countries, UK, and most of the world. Tell them: your exact location, what happened, whether they are breathing. Put the phone on speaker and start CPR immediately. Do not hang up — the operator will guide you.",
+        "next": "cpr-start"
+      },
+      "cpr-start": {
+        "action": true,
+        "instruction": "START CPR: Place the heel of your hand on the centre of the chest. Push down hard and fast — at least 5-6cm deep, 100-120 per minute (to the beat of Stayin' Alive). Give 30 compressions then 2 rescue breaths. Repeat continuously until help arrives, an AED is available, or they start breathing. If you cannot do rescue breaths, compressions-only CPR is still effective — do not stop.",
+        "next": "aed-check"
+      },
+      "aed-check": {
+        "question": "Is there an AED (defibrillator) nearby?",
+        "info": "AEDs are often found in public buildings, sports centres, train stations, and shopping centres. They are safe to use with no training — they talk you through it.",
+        "answers": [
+          { "text": "Yes — someone is getting it", "next": "aed-action" },
+          { "text": "No — continuing CPR", "next": "await-ambulance" },
+          { "text": "Emergency services have arrived", "next": "summary-medical" }
+        ]
+      },
+      "aed-action": {
+        "action": true,
+        "instruction": "When the AED arrives: turn it on and follow the voice instructions exactly. Attach the pads as shown in the diagrams — one below the right collarbone, one on the left side below the armpit. Stand clear when it analyses and shocks. Resume CPR immediately after each shock until told otherwise.",
+        "next": "await-ambulance"
+      },
+      "recovery-position": {
+        "action": true,
+        "instruction": "Place them in the recovery position: kneel beside them, place their near arm at a right angle, bring their far arm across and hold their hand against their cheek, pull up their far knee and roll them gently towards you onto their side. Tilt head back slightly to keep airway open. Monitor breathing constantly. Call 112 if not already done.",
+        "next": "await-ambulance"
+      },
+      "await-ambulance": {
+        "action": true,
+        "instruction": "Stay with them. Keep airway clear. Keep them warm — shock causes heat loss. Send someone outside to meet and guide the ambulance in. Note the time the incident started and any medications they take. Do not give food or water.",
+        "next": "summary-medical"
+      },
+      "severity": {
+        "question": "How severe does the situation appear?",
+        "answers": [
+          { "text": "Severe bleeding", "next": "severe-bleeding-pressure" },
+          { "text": "Chest pain or suspected heart attack", "next": "chest-pain" },
+          { "text": "Suspected stroke", "next": "stroke" },
+          { "text": "Serious but stable — broken bone, deep wound", "next": "serious-injury" },
+          { "text": "Minor — cuts, sprains, burns, illness", "next": "minor-treatment" }
+        ]
+      },
+      "severe-bleeding-pressure": {
+        "action": true,
+        "instruction": "Call 112 now. Apply direct firm pressure to the wound immediately using a clean cloth, dressing, or your hand. Press hard and do not release — lifting the dressing to check restarts the bleeding. If you have haemostatic gauze (QuikClot, Celox), pack it into the wound before applying pressure. Hold for at least 3 minutes.",
+        "next": "bleeding-controlled-check"
+      },
+      "bleeding-controlled-check": {
+        "question": "Is the bleeding controlled?",
+        "info": "Check without fully removing the dressing. Blood soaking through means it is not controlled.",
+        "answers": [
+          { "text": "Yes — bleeding has slowed or stopped", "next": "bleeding-controlled" },
+          { "text": "No — blood is soaking through the dressing", "next": "bleeding-location" }
+        ]
+      },
+      "bleeding-controlled": {
+        "action": true,
+        "instruction": "Keep firm pressure on the wound. Do not remove the dressing. Apply a bandage firmly over the top to hold it in place. Keep the casualty still and warm. Monitor for signs of shock — pale, cold, clammy skin, rapid weak pulse, confusion. Lay them flat and raise legs slightly if possible. Wait for emergency services.",
+        "next": "await-ambulance"
+      },
+      "bleeding-location": {
+        "question": "Where is the wound?",
+        "answers": [
+          { "text": "Arm or leg", "next": "tourniquet-action" },
+          { "text": "Torso, neck, or head", "next": "wound-packing" }
+        ]
+      },
+      "tourniquet-action": {
+        "action": true,
+        "instruction": "TOURNIQUET — direct pressure has failed. Apply it 5-7cm above the wound, never over a joint. Use a CAT tourniquet if available. To improvise: use a wide band (belt, torn clothing folded into a strip — never rope or wire), tie around the limb, insert a pen or stick through the knot and twist tightly until bleeding stops completely. This will be painful — it must be tight enough to stop all blood flow. Write the TIME on the casualty's skin. Do NOT remove it.",
+        "next": "tourniquet-check"
+      },
+      "tourniquet-check": {
+        "question": "Has the bleeding stopped?",
+        "answers": [
+          { "text": "Yes — bleeding stopped", "next": "shock-management" },
+          { "text": "No — still bleeding through", "next": "second-tourniquet" }
+        ]
+      },
+      "second-tourniquet": {
+        "action": true,
+        "instruction": "Apply a SECOND tourniquet immediately above the first and tighten until bleeding stops. The first was not tight enough — do not loosen or remove it. Note the time of the second tourniquet too.",
+        "next": "shock-management"
+      },
+      "wound-packing": {
+        "action": true,
+        "instruction": "For wounds on the torso, neck, or head where a tourniquet cannot be used: pack the wound firmly with haemostatic gauze (QuikClot, Celox) if available, or a clean cloth. Push it deep into the wound — do not be afraid to pack it firmly. Apply hard constant pressure for at least 3 minutes without releasing. Apply a pressure bandage tightly over the top.",
+        "next": "shock-management"
+      },
+      "shock-management": {
+        "action": true,
+        "instruction": "Monitor for shock — pale, cold, clammy skin, rapid weak pulse, confusion, thirst. Lay the casualty flat and raise their legs slightly unless you suspect a spinal injury or the wound is on the torso. Keep them warm — cover with a blanket or jacket. Do not give food or water. Reassure them and keep them calm. Tell emergency services the tourniquet time when they arrive.",
+        "next": "await-ambulance"
+      },
+      "chest-pain": {
+        "action": true,
+        "instruction": "Call 112 immediately. Sit them down in a comfortable position — do NOT let them walk around. Loosen any tight clothing around the neck and chest. Keep them calm and still. If they lose consciousness and stop breathing, begin CPR immediately. Note: the 112 operator may advise aspirin — follow their guidance rather than giving it without instruction, as it is not appropriate for everyone.",
+        "next": "await-ambulance"
+      },
+      "stroke": {
+        "action": true,
+        "instruction": "Use FAST to confirm: Face — ask them to smile, does one side droop? Arms — ask them to raise both arms, does one drift down? Speech — ask them to repeat a simple sentence, is it slurred or strange? Time — if any of these are present, call 112 immediately. Note the exact time symptoms started — this is critical information for hospital treatment. Do NOT give food or water. Keep them comfortable and still.",
+        "next": "await-ambulance"
+      },
+      "serious-injury": {
+        "action": true,
+        "instruction": "Call 112. Keep them still — do not attempt to move them unless there is immediate danger. Do not straighten broken bones. Support and immobilise the injured area with padding or splints. Keep them warm. Monitor breathing and consciousness continuously. Do not give food or water.",
+        "next": "await-ambulance"
+      },
+      "minor-treatment": {
+        "question": "What type of injury or illness?",
+        "answers": [
+          { "text": "Cut or wound — bleeding controlled", "next": "treat-cut" },
+          { "text": "Burn", "next": "treat-burn" },
+          { "text": "Sprain or strain", "next": "treat-sprain" },
+          { "text": "Illness — fever, vomiting", "next": "treat-illness" }
+        ]
+      },
+      "treat-cut": {
+        "action": true,
+        "instruction": "Clean the wound under running water for several minutes. Apply pressure with a clean dressing for 10 minutes without lifting. Once bleeding stops, close with steri-strips or wound closure strips if needed, then cover with a sterile dressing. If bleeding does not stop after 10 minutes, the wound is deep or gaping, or you suspect foreign objects inside — seek medical attention.",
+        "next": "summary-medical"
+      },
+      "treat-burn": {
+        "action": true,
+        "instruction": "Cool the burn under cool (not cold) running water for at least 20 minutes — start this immediately. Do not use ice, butter, toothpaste, or any creams. Remove jewellery near the burn but do not remove clothing stuck to the burn. Cover loosely with clean cling film or a non-fluffy dressing. Seek medical attention for burns larger than a postage stamp, on the face, hands, feet, or genitals, chemical or electrical burns, or if blistering is present.",
+        "next": "summary-medical"
+      },
+      "treat-sprain": {
+        "action": true,
+        "instruction": "RICE: Rest the injury immediately. Ice — apply a cold pack wrapped in cloth for 20 minutes every 2 hours. Compression — apply a bandage firmly but not so tight it cuts circulation. Elevate — raise the limb above heart level. Take pain relief if needed. If you cannot bear weight, the joint looks deformed, or pain is severe — suspect a fracture and seek medical attention.",
+        "next": "summary-medical"
+      },
+      "treat-illness": {
+        "action": true,
+        "instruction": "Keep them hydrated with small frequent sips of water or oral rehydration solution. Rest in a comfortable position. Monitor temperature — fever above 39C in adults, above 38C in children under 3, or above 37.5C in newborns warrants medical attention. Call 112 if breathing becomes difficult, skin turns blue or grey, they become confused or unresponsive, or symptoms worsen rapidly.",
+        "next": "summary-medical"
+      },
+      "summary-medical": {
+        "summary": true,
+        "title": "Medical Emergency — Actions Complete",
+        "points": [
+          "112 is the universal emergency number across Europe — use it",
+          "Check consciousness and breathing before anything else",
+          "CPR — 30 hard fast compressions, 2 breaths, repeat",
+          "AED — turn on and follow voice instructions exactly",
+          "Severe limb bleeding — tourniquet 5-7cm above wound, note the time",
+          "Torso or neck bleeding — pack the wound with firm constant pressure",
+          "Suspected stroke — use FAST, note exact time symptoms started",
+          "Chest pain — aspirin 300mg to chew if conscious and not allergic",
+          "Burns — cool running water for 20 minutes minimum",
+          "Do not give food or water if emergency services are coming"
+        ],
+        "checklists": ["home-first-aid", "trauma-kit", "medications"]
+      }
+    }
+  },
+  {
+    "id": "evacuation",
+    "title": "Bug Out / Evacuation",
+    "icon": "🎒",
+    "description": "You need to leave your home. Work through this to evacuate safely.",
+    "start": "time-available",
+    "nodes": {
+      "time-available": {
+        "question": "How much time do you have to leave?",
+        "answers": [
+          { "text": "Immediate — leave now", "next": "immediate-evac" },
+          { "text": "15 to 30 minutes", "next": "short-evac" },
+          { "text": "1 hour or more", "next": "planned-evac" }
+        ]
+      },
+      "immediate-evac": {
+        "action": true,
+        "instruction": "LEAVE NOW. Take your bug out bag if it is accessible — do not delay to pack. Take your keys, phone, wallet, and medication. Alert household members. Do not use lifts. Move away from the threat. Call 112 if needed.",
+        "next": "meeting-point"
+      },
+      "short-evac": {
+        "action": true,
+        "instruction": "Grab your bug out bag. Take medication, phone, keys, wallet, and ID. Dress appropriately for the weather. Alert all household members. Lock the property if safe to do so. Do not take more than you can carry quickly.",
+        "next": "meeting-point"
+      },
+      "planned-evac": {
+        "action": true,
+        "instruction": "Follow your evacuation plan. Pack your bug out bag if not already packed. Take important documents, medication, phone, cash, and spare clothing. Secure your property — turn off gas and electricity at the mains if safe. Notify your out-of-area contact.",
+        "next": "documents-check"
+      },
+      "documents-check": {
+        "question": "Do you have your important documents?",
+        "answers": [
+          { "text": "Yes — documents secured", "next": "meeting-point" },
+          { "text": "No — need to grab them", "next": "get-documents" }
+        ]
+      },
+      "get-documents": {
+        "action": true,
+        "instruction": "Grab your documents now — passport, ID, insurance, medication list, cash. Keep them in a waterproof bag. If you cannot find originals, take photos on your phone.",
+        "next": "meeting-point"
+      },
+      "meeting-point": {
+        "question": "Do all household members know where to meet?",
+        "answers": [
+          { "text": "Yes — meeting point agreed", "next": "route-check" },
+          { "text": "No — need to communicate", "next": "contact-household" }
+        ]
+      },
+      "contact-household": {
+        "action": true,
+        "instruction": "Contact all household members now. Agree on your primary meeting point. If phones are down, fall back to your pre-agreed plan. If family members are at school or work, follow your family reunification plan.",
+        "next": "route-check"
+      },
+      "route-check": {
+        "question": "Do you have a route planned?",
+        "answers": [
+          { "text": "Yes — I know my primary and backup routes", "next": "vehicle-check" },
+          { "text": "No — I need to plan a route", "next": "plan-route" }
+        ]
+      },
+      "plan-route": {
+        "action": true,
+        "instruction": "Use your paper map — do not rely on GPS alone. Identify your primary route away from the threat. Identify a backup route in case the primary is blocked. Avoid motorways and major roads if civil emergency — they may be congested or closed.",
+        "next": "vehicle-check"
+      },
+      "vehicle-check": {
+        "question": "Are you evacuating by vehicle?",
+        "answers": [
+          { "text": "Yes — vehicle available and fuelled", "next": "depart" },
+          { "text": "Yes — but low on fuel", "next": "fuel-warning" },
+          { "text": "No — evacuating on foot", "next": "on-foot" }
+        ]
+      },
+      "fuel-warning": {
+        "action": true,
+        "instruction": "Fill up as soon as possible — fuel stations may become congested or run out quickly in an emergency. Keep a spare fuel can if possible. Plan your route around fuel stops if needed.",
+        "next": "depart"
+      },
+      "on-foot": {
+        "action": true,
+        "instruction": "Carry only what you can manage for several hours of walking. Wear sturdy footwear. Take your bug out bag. Plan for rest stops. Stay off main roads if possible. Move purposefully — do not draw unnecessary attention.",
+        "next": "depart"
+      },
+      "depart": {
+        "action": true,
+        "instruction": "Depart now. Notify your out-of-area contact of your route and destination. Check in at agreed intervals. Monitor emergency broadcasts. If your primary route is blocked, switch to your backup immediately. Stay calm.",
+        "next": "summary-evac"
+      },
+      "summary-evac": {
+        "summary": true,
+        "title": "Evacuation — Actions Complete",
+        "points": [
+          "Take bug out bag, keys, phone, wallet, medication, documents",
+          "Alert all household members and agree meeting point",
+          "Turn off gas and electricity if time allows",
+          "Notify out-of-area contact of route and destination",
+          "Have primary and backup routes planned on paper map",
+          "Keep fuel above half tank at all times",
+          "Check in at agreed intervals",
+          "Monitor emergency broadcasts"
+        ],
+        "checklists": ["bug-out-bag", "evacuation-plan", "family-reunification"]
+      }
+    }
+  },
+  {
+    "id": "comms-failure",
+    "title": "Communications Failure",
+    "icon": "📻",
+    "description": "Phone networks and internet are down. Work through this to maintain communications.",
+    "start": "what-is-down",
+    "nodes": {
+      "what-is-down": {
+        "question": "What communications are affected?",
+        "answers": [
+          { "text": "Internet only — phones still working", "next": "internet-only" },
+          { "text": "Mobile network down — no calls or data", "next": "mobile-down" },
+          { "text": "Everything down including landlines", "next": "all-down" }
+        ]
+      },
+      "internet-only": {
+        "action": true,
+        "instruction": "Internet outages are usually temporary. Use mobile data if available. Check your router — restart it. Contact your ISP if prolonged. You can still make calls and send SMS.",
+        "next": "summary-comms"
+      },
+      "mobile-down": {
+        "action": true,
+        "instruction": "Switch to your backup communications plan. Try SMS first — texts often get through when voice calls cannot. Try WiFi calling if internet is still available. If no joy, move to radio. Check in at your pre-agreed time and frequency.",
+        "next": "radio-check"
+      },
+      "all-down": {
+        "action": true,
+        "instruction": "All phone and internet comms are down. Move to radio immediately. Activate any MeshCore or Meshtastic devices — these work peer-to-peer with no infrastructure. Fall back to your in-person meeting plan if radio also fails.",
+        "next": "radio-check"
+      },
+      "radio-check": {
+        "question": "What radio equipment do you have available?",
+        "answers": [
+          { "text": "PMR446 handheld", "next": "pmr-action" },
+          { "text": "CB radio", "next": "cb-action" },
+          { "text": "Amateur radio (licensed)", "next": "amateur-action" },
+          { "text": "MeshCore or Meshtastic device", "next": "mesh-action" },
+          { "text": "No radio equipment", "next": "no-radio" }
+        ]
+      },
+      "pmr-action": {
+        "action": true,
+        "instruction": "PMR446 — no licence required. Turn on and go to your pre-agreed channel (default calling channel is CH1). Listen before transmitting. Call: your name, location, and status. If no response on CH1, try CH8 (widely used as an alternative calling channel). PMR446 range is typically 1-5km line of sight — useful for local neighbourhood comms.",
+        "next": "info-check"
+      },
+      "cb-action": {
+        "question": "What type of CB radio do you have?",
+        "answers": [
+          { "text": "Standard AM/FM CB", "next": "cb-am-action" },
+          { "text": "SSB (Single Sideband) CB", "next": "cb-ssb-action" }
+        ]
+      },
+      "cb-am-action": {
+        "action": true,
+        "instruction": "CB Radio AM/FM — no licence required in most European countries. Go to Channel 9 (international emergency and calling channel). Listen first, then transmit: your name, location, and situation. If no response on CH9, try CH19 (widely monitored by truckers and mobile users across Europe). CB range is typically 5-20km depending on terrain and antenna.",
+        "next": "info-check"
+      },
+      "cb-ssb-action": {
+        "action": true,
+        "instruction": "CB SSB — significantly greater range than AM, especially on Upper Sideband (USB). Go to CH9 USB as your first call. SSB can cover 50-200km or more under good conditions, making it useful for regional communications when local infrastructure is down. Try USB first, then LSB if no response. SSB is particularly useful for contacting people outside your immediate area.",
+        "next": "info-check"
+      },
+      "amateur-action": {
+        "question": "What amateur radio capability do you have?",
+        "answers": [
+          { "text": "VHF/UHF — handheld or mobile", "next": "amateur-vhf-action" },
+          { "text": "HF — shortwave transceiver", "next": "amateur-hf-action" }
+        ]
+      },
+      "amateur-vhf-action": {
+        "action": true,
+        "instruction": "VHF/UHF Amateur Radio — check your local repeater is operational (repeaters may be down if power is out). If repeater is down, switch to simplex. International calling frequency: 145.500 MHz FM on 2m. Listen first, then transmit your callsign, location, and situation. Contact your local amateur radio emergency net (RAYNET in UK, similar in other countries). Range on VHF simplex is typically 10-50km depending on terrain.",
+        "next": "info-check"
+      },
+      "amateur-hf-action": {
+        "action": true,
+        "instruction": "HF Amateur Radio — this is your most powerful long-range option. For regional European contacts try 40m band (7.060 MHz SSB is a common calling frequency). For longer range try 20m (14.300 MHz SSB). Check into any active emergency nets. HF can cover hundreds to thousands of kilometres, making it invaluable when local infrastructure is completely down. Ensure your antenna and power supply are operational.",
+        "next": "info-check"
+      },
+      "mesh-action": {
+        "action": true,
+        "instruction": "MeshCore / Meshtastic — activate your device. These work without any infrastructure, communicating directly device-to-device. Check your local mesh network is active — look for nodes. Send a check-in message to your group. Range per node is typically 1-10km depending on device and antenna. If you have a roof node or repeater, check it is online. Mesh networks become more capable the more nodes are active — encourage your network to activate their devices.",
+        "next": "info-check"
+      },
+      "no-radio": {
+        "action": true,
+        "instruction": "Without radio you are dependent on your pre-agreed in-person plan. Go to your agreed meeting point at your agreed check-in time. Use written notes passed via trusted people if needed. This situation highlights the importance of radio — PMR446 handhelds require no licence and cost very little. Make acquiring at least one a priority when this situation resolves.",
+        "next": "info-check"
+      },
+      "info-check": {
+        "question": "Can you receive emergency information?",
+        "answers": [
+          { "text": "Yes — battery radio receiving broadcasts", "next": "summary-comms" },
+          { "text": "No — no way to receive information", "next": "info-action" }
+        ]
+      },
+      "info-action": {
+        "action": true,
+        "instruction": "Use a battery or hand-crank radio to receive AM/FM emergency broadcasts. In most European countries, national broadcasters carry emergency information on FM. Check your local emergency broadcast frequency. If no radio, rely on trusted community contacts for information.",
+        "next": "summary-comms"
+      },
+      "summary-comms": {
+        "summary": true,
+        "title": "Communications Failure — Actions Complete",
+        "points": [
+          "SMS often works when voice calls cannot — try it first",
+          "PMR446 — CH1 or CH8, no licence, 1-5km range",
+          "CB AM/FM — CH9 emergency, CH19 widely monitored, 5-20km range",
+          "CB SSB — CH9 USB, 50-200km+ range, best for regional comms",
+          "Amateur VHF — 145.500 MHz simplex if repeater is down",
+          "Amateur HF — 40m (7.060 MHz) regional, 20m (14.300 MHz) long range",
+          "MeshCore / Meshtastic — activate devices, works without infrastructure",
+          "Battery radio to receive emergency broadcasts",
+          "Fall back to in-person meeting plan if all else fails"
+        ],
+        "checklists": ["comms-plan", "radio-setup", "community-network"]
+      }
+    }
+  },
+  {
+    "id": "civil-unrest",
+    "title": "Civil Unrest / Shelter in Place",
+    "icon": "🏠",
+    "description": "There is civil unrest or an external threat. Work through this to assess whether to stay or go.",
+    "start": "immediate-threat",
+    "nodes": {
+      "immediate-threat": {
+        "question": "Is there an immediate threat to your safety?",
+        "answers": [
+          { "text": "Yes — threat is close and they know where I am", "next": "threat-seen" },
+          { "text": "Yes — threat is close but I have not been seen", "next": "threat-unseen" },
+          { "text": "No — situation is developing but not immediately threatening", "next": "assess-situation" }
+        ]
+      },
+      "threat-seen": {
+        "question": "Can you escape?",
+        "info": "If you have been seen, hiding is less effective. Your priority is to get away if at all possible.",
+        "answers": [
+          { "text": "Yes — there is an exit route away from the threat", "next": "escape-action" },
+          { "text": "No — I cannot escape safely", "next": "barricade-action" }
+        ]
+      },
+      "escape-action": {
+        "action": true,
+        "instruction": "GET OUT. Leave immediately via the safest route away from the threat — not necessarily the main exit. Do not stop to collect belongings. Alert others as you go without putting yourself at risk. Move fast and put as much distance and as many barriers between you and the threat as possible. Do not stop until you are genuinely safe. Call 112 when you are clear — if lines are clogged keep trying at intervals. Contact your network via radio to alert them.",
+        "next": "assess-situation"
+      },
+      "barricade-action": {
+        "action": true,
+        "instruction": "If you cannot escape, barricade. Move to an interior room — avoid ground floor if possible. Lock and barricade the door with heavy furniture. Stay away from the door and out of line of sight from any window or gap. Silence all devices. Do not speak above a whisper. Try 112 — if clogged, send SMS. Contact your community network via radio quietly. As a last resort if the threat breaches your position, improvised defensive options include fire extinguishers, heavy objects, and anything that creates distance or time. This is a worst case — your goal is always to escape if a route becomes available.",
+        "next": "assess-situation"
+      },
+      "threat-unseen": {
+        "action": true,
+        "instruction": "You have not been seen — keep it that way. Move away from windows and exterior walls immediately. Go to an interior room, upper floor if possible. Lock all doors and windows. Turn off lights. Stay low and stay quiet — no talking above a whisper, silence phones. Do not look out of windows. Try 112 quietly — if lines are clogged keep trying at intervals. Contact your community network via radio on low volume.",
+        "next": "assess-situation"
+      },
+      "assess-situation": {
+        "question": "What is the nature of the situation?",
+        "answers": [
+          { "text": "Violent unrest — rioting, looting nearby", "next": "lockdown" },
+          { "text": "Official advice to shelter in place", "next": "official-shelter" },
+          { "text": "General instability — uncertain situation", "next": "monitor-and-prepare" }
+        ]
+      },
+      "lockdown": {
+        "action": true,
+        "instruction": "Do not go outside. Lock and barricade all entry points if necessary. Keep lights low at night to avoid drawing attention. Monitor situation via radio. Have your bug out bag ready in case you need to leave quickly. Agree on a trigger point at which you will evacuate.",
+        "next": "supplies-check"
+      },
+      "official-shelter": {
+        "action": true,
+        "instruction": "Follow official advice. Close and lock all windows and doors. If advised due to chemical or biological risk, seal gaps with tape and damp towels. Turn off ventilation systems. Monitor official broadcasts for updates on when it is safe to go outside.",
+        "next": "supplies-check"
+      },
+      "monitor-and-prepare": {
+        "action": true,
+        "instruction": "Monitor the situation closely via radio and trusted contacts. Prepare to either shelter in place or evacuate — have your bug out bag accessible. Avoid unnecessary travel. Check in with your community network. Have a trigger point agreed for when you will act.",
+        "next": "supplies-check"
+      },
+      "supplies-check": {
+        "question": "Do you have sufficient supplies to shelter in place?",
+        "answers": [
+          { "text": "Yes — food, water, and essentials for several days", "next": "comms-shelter" },
+          { "text": "No — limited supplies", "next": "supplies-action" }
+        ]
+      },
+      "supplies-action": {
+        "action": true,
+        "instruction": "Use what you have. Ration food and water. Do not go outside to resupply unless absolutely necessary and it is safe to do so. Contact trusted neighbours about resource sharing. This highlights the importance of maintaining your stockpile.",
+        "next": "comms-shelter"
+      },
+      "comms-shelter": {
+        "action": true,
+        "instruction": "Maintain communications with your network via radio. Check in at agreed times. Share situational information with trusted contacts. Monitor official broadcasts. Agree on a signal with neighbours that all is well — for example a specific light in a window.",
+        "next": "summary-unrest"
+      },
+      "summary-unrest": {
+        "summary": true,
+        "title": "Civil Unrest — Actions Complete",
+        "points": [
+          "Stay away from windows and exterior walls if threat is close",
+          "Lock and secure all entry points",
+          "Monitor situation via battery radio",
+          "Keep lights low at night",
+          "Maintain comms with your network",
+          "Have bug out bag ready and agree a trigger point to evacuate",
+          "Ration supplies if needed",
+          "Follow official advice when available"
+        ],
+        "checklists": ["shelter-in-place", "comms-plan", "2-week-stockpile"]
+      }
+    }
+  },
+  {
+    "id": "severe-weather",
+    "title": "Severe Weather",
+    "icon": "🌩️",
+    "description": "Severe weather is forecast or occurring. Work through this to prepare and respond.",
+    "start": "weather-type",
+    "nodes": {
+      "weather-type": {
+        "question": "What type of severe weather?",
+        "answers": [
+          { "text": "Storm / high winds", "next": "storm-action" },
+          { "text": "Flooding", "next": "flood-check" },
+          { "text": "Extreme cold / snow", "next": "cold-action" },
+          { "text": "Extreme heat", "next": "heat-action" }
+        ]
+      },
+      "storm-action": {
+        "action": true,
+        "instruction": "Bring in or secure any outdoor furniture, bins, or loose items. Stay indoors. Keep away from windows. Do not drive unless essential. Monitor official weather warnings. Check on elderly or vulnerable neighbours. Have a torch ready in case of power outage.",
+        "next": "summary-weather"
+      },
+      "flood-check": {
+        "question": "Is flooding affecting or threatening your property?",
+        "answers": [
+          { "text": "Yes — water is entering or about to enter", "next": "flood-action" },
+          { "text": "No — but it is a risk in my area", "next": "flood-prepare" }
+        ]
+      },
+      "flood-action": {
+        "action": true,
+        "instruction": "Move valuables and important documents to upper floors immediately. Turn off electricity at the mains if water is entering — do not touch electrical switches if standing in water. Do not walk or drive through floodwater — 15cm can knock you off your feet. Call 112 if in immediate danger. Consider evacuation.",
+        "next": "summary-weather"
+      },
+      "flood-prepare": {
+        "action": true,
+        "instruction": "Move valuables upstairs. Prepare sandbags or flood barriers if available. Turn off gas and electricity at mains if flooding becomes likely. Have your bug out bag ready. Monitor official flood warnings. Know your evacuation route to higher ground.",
+        "next": "summary-weather"
+      },
+      "cold-action": {
+        "action": true,
+        "instruction": "Stay indoors. Heat one room well rather than trying to heat the whole house — conserve fuel. Dress in layers. Check on elderly neighbours. Keep pipes from freezing — keep heating on low and open cabinet doors under sinks. Have supplies for several days — do not travel unless essential.",
+        "next": "summary-weather"
+      },
+      "heat-action": {
+        "action": true,
+        "instruction": "Stay indoors during peak heat — 11am to 3pm. Keep blinds and curtains closed on sun-facing windows. Drink water regularly. Check on elderly or vulnerable people. Do not exercise in peak heat. Know the signs of heat exhaustion — heavy sweating, weakness, cold clammy skin, weak pulse. Heat stroke is a medical emergency — call 112.",
+        "next": "summary-weather"
+      },
+      "summary-weather": {
+        "summary": true,
+        "title": "Severe Weather — Actions Complete",
+        "points": [
+          "Monitor official weather warnings and follow advice",
+          "Secure outdoor items before storms",
+          "Never walk or drive through floodwater",
+          "Turn off electricity at mains if flooding enters property",
+          "Stay indoors and conserve heating fuel in extreme cold",
+          "Check on elderly and vulnerable neighbours",
+          "Have supplies for several days — avoid travel",
+          "Keep phone and radio charged for updates"
+        ],
+        "checklists": ["shelter-in-place", "power-outage", "2-week-stockpile"]
+      }
+    }
+  },
+  {
+    "id": "fire",
+    "title": "Fire",
+    "icon": "🔥",
+    "description": "There is a fire in or near your property. Work through this immediately.",
+    "start": "fire-location",
+    "nodes": {
+      "fire-location": {
+        "question": "Where is the fire?",
+        "answers": [
+          { "text": "Inside my property", "next": "inside-fire" },
+          { "text": "Nearby — neighbouring property or area", "next": "nearby-fire" }
+        ]
+      },
+      "inside-fire": {
+        "question": "Is the fire small and just started, or is it spreading?",
+        "answers": [
+          { "text": "Small and just started — I may be able to contain it", "next": "small-fire" },
+          { "text": "Spreading or I am not sure", "next": "evacuate-fire" }
+        ]
+      },
+      "small-fire": {
+        "action": true,
+        "instruction": "Only tackle a fire if it is very small, you have a suitable extinguisher, you have a clear exit behind you, and you feel confident. For a small kitchen fire — smother with a damp cloth or fire blanket, never use water on a chip pan. If in doubt — GET OUT. Close doors behind you. Call 112.",
+        "next": "evacuate-fire"
+      },
+      "evacuate-fire": {
+        "action": true,
+        "instruction": "GET OUT NOW. Alert all household members — shout FIRE. Do not stop to collect belongings. Feel doors before opening — if hot, do not open. Stay low — smoke rises. Close doors behind you to slow the fire. Meet at your agreed meeting point. Call 112 immediately.",
+        "next": "trapped-check"
+      },
+      "trapped-check": {
+        "question": "Is anyone trapped inside?",
+        "answers": [
+          { "text": "No — everyone is out", "next": "outside-safe" },
+          { "text": "Yes — someone is trapped", "next": "trapped-action" }
+        ]
+      },
+      "trapped-action": {
+        "action": true,
+        "instruction": "Call 112 immediately and tell them someone is trapped. Do NOT re-enter the building. Tell the fire service the location of the trapped person when they arrive. If the person can hear you, tell them to stay low, close doors, and signal from a window.",
+        "next": "outside-safe"
+      },
+      "outside-safe": {
+        "action": true,
+        "instruction": "Stay well clear of the building. Do not re-enter for any reason. Meet the fire service when they arrive and tell them everything you know. Account for all household members. Move upwind if there is smoke.",
+        "next": "nearby-fire"
+      },
+      "nearby-fire": {
+        "question": "Is the fire threatening your property?",
+        "answers": [
+          { "text": "Yes — fire is spreading towards us", "next": "prepare-evac-fire" },
+          { "text": "No — but I want to monitor it", "next": "monitor-fire" }
+        ]
+      },
+      "prepare-evac-fire": {
+        "action": true,
+        "instruction": "Prepare to evacuate immediately. Grab your bug out bag, keys, phone, medication, and documents. Close all windows and doors. Turn off gas at the mains. Move upwind of the fire. Call 112 if not already done. Follow evacuation plan.",
+        "next": "summary-fire"
+      },
+      "monitor-fire": {
+        "action": true,
+        "instruction": "Monitor the situation closely. Keep windows and doors closed to keep smoke out. Have your bug out bag ready. Know your evacuation route. Follow official advice and be ready to leave at short notice.",
+        "next": "summary-fire"
+      },
+      "summary-fire": {
+        "summary": true,
+        "title": "Fire — Actions Complete",
+        "points": [
+          "GET OUT — do not delay to collect belongings",
+          "Feel doors before opening — if hot, find another exit",
+          "Stay low — smoke rises",
+          "Close doors behind you to slow the fire",
+          "Call 112 immediately",
+          "Do NOT re-enter the building for any reason",
+          "Meet at your agreed meeting point",
+          "Account for all household members"
+        ],
+        "checklists": ["evacuation-plan", "72-hour-kit"]
+      }
+    }
+  },
+  {
+    "id": "gas-leak",
+    "title": "Gas Leak / Carbon Monoxide",
+    "icon": "☠️",
+    "description": "You can smell gas or your CO alarm is sounding. Act immediately — do not delay.",
+    "start": "what-type",
+    "nodes": {
+      "what-type": {
+        "question": "What is the situation?",
+        "answers": [
+          { "text": "I can smell gas", "next": "gas-smell" },
+          { "text": "Carbon monoxide alarm is sounding", "next": "co-alarm" },
+          { "text": "People are feeling unwell — headache, dizziness, nausea", "next": "co-symptoms" }
+        ]
+      },
+      "gas-smell": {
+        "question": "Is the smell faint or strong?",
+        "info": "Natural gas has a distinctive rotten egg smell added specifically so leaks can be detected. Any smell of gas should be taken seriously.",
+        "answers": [
+          { "text": "Faint — could be gas", "next": "gas-action" },
+          { "text": "Strong — definite gas smell", "next": "gas-action" }
+        ]
+      },
+      "gas-action": {
+        "action": true,
+        "instruction": "DO NOT operate any switches, plug in or unplug anything, or use your phone INSIDE. Do not turn lights on or off. Do not use doorbells. A spark could ignite the gas.\n\nDo this now:\n1. Do not touch any switches.\n2. Open all windows and doors to ventilate.\n3. Turn off the gas at the meter — the emergency control valve is usually next to the meter. Turn the handle a quarter turn so it is at 90° to the pipe.\n4. Get everyone out of the building.\n5. Leave the door open behind you.",
+        "next": "gas-call"
+      },
+      "gas-call": {
+        "action": true,
+        "instruction": "Once outside and away from the building, call the gas emergency line:\n\nUK: 0800 111 999 (National Gas Emergency, free, 24/7)\nIreland: 1800 20 50 50 (Gas Networks Ireland)\nOther countries: call 112 and tell them you have a gas leak.\n\nDo NOT re-enter the building until the gas emergency service has declared it safe. Do NOT use your car if it is in or attached to the building — the ignition could cause a spark.",
+        "next": "gas-wait"
+      },
+      "gas-wait": {
+        "action": true,
+        "instruction": "Wait outside well away from the building. Keep neighbours away from the area. Do not smoke. Do not use any device that could create a spark. If you see someone feeling unwell, move them to fresh air immediately. If anyone has lost consciousness or is struggling to breathe, call 112.",
+        "next": "summary-gas"
+      },
+      "co-alarm": {
+        "action": true,
+        "instruction": "GET EVERYONE OUT IMMEDIATELY — including pets. Carbon monoxide is colourless and odourless. You will not smell it. If your alarm is sounding, assume it is real.\n\n1. Do not stop to gather belongings.\n2. Leave doors open behind you to ventilate.\n3. Get into fresh air immediately.\n4. Call 112 from outside.\n5. Do NOT re-enter until emergency services have declared it safe.",
+        "next": "co-symptoms-check"
+      },
+      "co-symptoms": {
+        "action": true,
+        "instruction": "Carbon monoxide poisoning symptoms — headache, dizziness, nausea, confusion, shortness of breath — are easy to mistake for flu but there will be no fever. If multiple people in the building feel unwell, or pets are behaving strangely, suspect CO immediately.\n\nGET EVERYONE OUTSIDE INTO FRESH AIR NOW. Call 112. Do not re-enter the building.",
+        "next": "co-symptoms-check"
+      },
+      "co-symptoms-check": {
+        "question": "Is anyone feeling unwell, confused, or struggling to breathe?",
+        "answers": [
+          { "text": "Yes — someone is seriously unwell", "next": "co-casualty" },
+          { "text": "Mild symptoms only — everyone is now in fresh air", "next": "co-mild" },
+          { "text": "Everyone feels fine — precautionary evacuation", "next": "co-check-source" }
+        ]
+      },
+      "co-casualty": {
+        "action": true,
+        "instruction": "Call 112 immediately. Keep the casualty in fresh air. If unconscious but breathing, place in the recovery position. If not breathing, begin CPR. Do NOT take them back inside. CO poisoning can cause heart rhythm problems — they need hospital assessment even if they recover quickly in fresh air. Tell emergency services you suspect carbon monoxide poisoning.",
+        "next": "co-check-source"
+      },
+      "co-mild": {
+        "action": true,
+        "instruction": "Even if symptoms are mild, call 112 and seek medical advice. CO poisoning can be serious even after symptoms seem to have gone. Keep everyone in fresh air. Do not re-enter the building. If symptoms worsen, call 112 immediately.",
+        "next": "co-check-source"
+      },
+      "co-check-source": {
+        "action": true,
+        "instruction": "Common sources of carbon monoxide: gas boilers, gas cookers, open fires, wood burners, portable generators, BBQs used indoors, and petrol-powered tools used in enclosed spaces.\n\nDo NOT re-enter to investigate. Call the gas emergency line (UK: 0800 111 999) or 112. A registered engineer must inspect before anyone returns. After this, ensure all gas appliances are serviced annually and CO alarms are fitted on every floor near sleeping areas.",
+        "next": "summary-gas"
+      },
+      "summary-gas": {
+        "summary": true,
+        "title": "Gas / Carbon Monoxide — Actions Complete",
+        "points": [
+          "Gas smell — do NOT touch switches, open windows, turn off meter, evacuate",
+          "UK gas emergency: 0800 111 999 — call from outside",
+          "CO alarm — evacuate immediately, fresh air, call 112",
+          "CO symptoms: headache, dizziness, nausea in multiple people or pets acting strangely",
+          "Do NOT re-enter until cleared by emergency services or gas engineer",
+          "Do NOT use your car if it is in or attached to the affected building",
+          "Anyone seriously unwell from CO — call 112, recovery position if unconscious",
+          "Annual boiler service and CO alarms on every floor near sleeping areas"
+        ],
+        "checklists": []
+      }
+    }
+  },
+  {
+    "id": "flooding",
+    "title": "Flooding",
+    "icon": "🌊",
+    "description": "Flooding is threatening or affecting your area or property. Work through this to protect yourself and your household.",
+    "start": "flood-status",
+    "nodes": {
+      "flood-status": {
+        "question": "What is the current situation?",
+        "answers": [
+          { "text": "Flood warning issued — not flooded yet", "next": "flood-prepare-full" },
+          { "text": "Water is entering or about to enter my property", "next": "flood-entering" },
+          { "text": "I am trapped by floodwater — inside a building", "next": "flood-trapped-building" },
+          { "text": "I am caught in or near floodwater outside", "next": "flood-outside" }
+        ]
+      },
+      "flood-prepare-full": {
+        "action": true,
+        "instruction": "A flood warning means flooding is expected — act now, not when the water arrives.\n\n1. Move valuables, documents, and electrical items to upper floors.\n2. Put important documents in waterproof bags.\n3. Prepare sandbags or flood barriers at doors and air bricks if you have them.\n4. Turn off electricity, gas, and water at the mains if flooding becomes imminent — do this before water enters.\n5. Fill bath and containers with drinking water in case the supply becomes contaminated.\n6. Charge phones and power banks.\n7. Know your evacuation route and have your bug out bag ready.",
+        "next": "flood-warning-monitor"
+      },
+      "flood-warning-monitor": {
+        "question": "Is the situation developing? What are official services saying?",
+        "answers": [
+          { "text": "Advised to evacuate", "next": "flood-evac" },
+          { "text": "Shelter in place — flood level expected to be manageable", "next": "flood-shelter-prep" },
+          { "text": "No update — monitoring situation", "next": "flood-shelter-prep" }
+        ]
+      },
+      "flood-evac": {
+        "action": true,
+        "instruction": "Evacuate now. Take your bug out bag, medication, documents, phone, and keys. Tell someone your route and destination. Do not walk or drive through floodwater — even 15cm of moving water can knock an adult off their feet. 30cm of moving water can carry a car. Take the highest available route to your destination or evacuation centre. Call 112 if you cannot evacuate safely.",
+        "next": "summary-flood"
+      },
+      "flood-shelter-prep": {
+        "action": true,
+        "instruction": "If staying in place:\n1. Identify the safest upper floor room as your refuge.\n2. Move food, water, medication, phone charger, radio, torch, and sleeping bags upstairs.\n3. Keep monitoring water levels — be ready to evacuate if the situation worsens.\n4. Agree a trigger point at which you will call 112 for rescue — e.g. water reaching the stairs.\n5. Keep a charged phone with you at all times.",
+        "next": "summary-flood"
+      },
+      "flood-entering": {
+        "action": true,
+        "instruction": "Floodwater is entering your property.\n\n1. Turn off electricity at the consumer unit NOW — if you are already standing in water, do NOT touch the switch. Call 112 and tell them.\n2. Move upstairs immediately with phone, torch, water, medication, and warm clothing.\n3. Do NOT go back downstairs to retrieve belongings once water is rising.\n4. Call 112 to report your situation — give your address and how many people are with you.\n5. Do NOT attempt to walk out through rising water.",
+        "next": "flood-level-check"
+      },
+      "flood-level-check": {
+        "question": "How is the water level inside the building?",
+        "answers": [
+          { "text": "Rising slowly — we are safe upstairs for now", "next": "flood-upstairs-wait" },
+          { "text": "Rising quickly — we may need rescue soon", "next": "flood-rescue-signal" },
+          { "text": "It has stopped rising", "next": "flood-upstairs-wait" }
+        ]
+      },
+      "flood-upstairs-wait": {
+        "action": true,
+        "instruction": "Stay upstairs. Keep monitoring the water level. Keep 112 informed of your situation. Signal from upper windows so emergency services can locate you. Do NOT go into the attic — if water continues to rise you could become trapped with no escape. Stay near an upper floor window. Keep warm and conserve phone battery.",
+        "next": "summary-flood"
+      },
+      "flood-rescue-signal": {
+        "action": true,
+        "instruction": "Call 112 NOW if not already done and tell them you need rescue. Give your exact address.\n\nWhile waiting for rescue:\n- Signal from an upper floor window — use a torch at night or a brightly coloured item in daylight.\n- Keep a window you can open for rescue access.\n- Do NOT enter the attic unless water is at the upper floor — you could become trapped.\n- Keep 112 on the line or call back regularly.\n- If you have a radio, transmit on PMR446 CH1 or CB CH9 to alert your community network.",
+        "next": "summary-flood"
+      },
+      "flood-trapped-building": {
+        "action": true,
+        "instruction": "You are trapped inside a building surrounded by floodwater.\n\n1. Call 112 immediately — give your exact address.\n2. Move to the highest floor — do NOT go into the attic.\n3. Signal from upper windows with a torch or brightly coloured item.\n4. If you have a radio, transmit on PMR446 CH1 or CB CH9 — your community network may be able to relay to emergency services.\n5. Keep warm. Stay calm. Rescue teams will be deployed.\n6. Do NOT attempt to swim or wade out unless there is an immediate life-threatening danger inside.",
+        "next": "summary-flood"
+      },
+      "flood-outside": {
+        "question": "Are you in a vehicle or on foot?",
+        "answers": [
+          { "text": "In a vehicle — water is rising around the car", "next": "flood-vehicle" },
+          { "text": "On foot — caught in or near floodwater", "next": "flood-on-foot" }
+        ]
+      },
+      "flood-vehicle": {
+        "action": true,
+        "instruction": "A car can be swept away in just 30cm of moving water.\n\n1. If water is beginning to rise around your car — leave immediately. Take your phone and keys.\n2. Move to higher ground away from the water.\n3. If the car is already swept into deep water: unlock the doors, wind down the window (electric windows may fail), wait for water pressure to equalise if doors will not open, then push the door open and swim to the surface.\n4. Call 112 once you reach safety.",
+        "next": "summary-flood"
+      },
+      "flood-on-foot": {
+        "action": true,
+        "instruction": "DO NOT walk through floodwater if you can avoid it. Even 15cm of fast-moving water can knock you off your feet. Drains and manholes may be open beneath the surface.\n\nIf you must move through it:\n- Use a sturdy stick to probe the ground ahead.\n- Move slowly and do not lift your feet — shuffle.\n- Avoid moving water — even shallow fast-moving water is more dangerous than deeper still water.\n- Move to higher ground as quickly as possible.\n- Once safe, call 112.",
+        "next": "summary-flood"
+      },
+      "summary-flood": {
+        "summary": true,
+        "title": "Flooding — Actions Complete",
+        "points": [
+          "On warning: move valuables upstairs, fill water containers, charge devices",
+          "Turn off electricity at the mains before water enters — not after",
+          "Never walk or drive through floodwater — 15cm of moving water can knock you down",
+          "30cm of moving water can sweep a car away — get out and move to high ground",
+          "If trapped upstairs: call 112, signal from windows, do NOT go into the attic",
+          "PMR446 CH1 or CB CH9 — alert your community network",
+          "In a car in rising water: unlock, window down, wait for pressure to equalise, swim out",
+          "After flooding: do not re-enter until declared safe — structural damage and contamination risks"
+        ],
+        "checklists": ["evacuation-plan", "72-hour-kit", "2-week-stockpile"]
+      }
+    }
+  },
+  {
+    "id": "earthquake",
+    "title": "Earthquake",
+    "icon": "🏔️",
+    "description": "The ground is shaking or an earthquake has just occurred. Work through this to protect yourself and respond.",
+    "start": "earthquake-phase",
+    "nodes": {
+      "earthquake-phase": {
+        "question": "What phase are you in?",
+        "answers": [
+          { "text": "Shaking is happening RIGHT NOW", "next": "during-quake" },
+          { "text": "Shaking has just stopped", "next": "after-quake-immediate" },
+          { "text": "I felt a quake — assessing the situation", "next": "after-quake-assess" }
+        ]
+      },
+      "during-quake": {
+        "action": true,
+        "instruction": "DROP — COVER — HOLD ON. Do this immediately.\n\nIF INDOORS:\n- Drop to hands and knees.\n- Get under a sturdy table or desk and hold on. If no table, get against an interior wall away from windows.\n- Cover your head and neck with your arms.\n- Hold on until shaking stops — do NOT run outside during shaking.\n- Stay away from windows, exterior walls, and anything that could fall.\n\nIF OUTDOORS:\n- Move away from buildings, trees, streetlights, and overhead lines.\n- Drop to the ground and stay there until shaking stops.\n\nIF IN A VEHICLE:\n- Pull over away from buildings, bridges, and overpasses.\n- Stay inside with seatbelt on until shaking stops.",
+        "next": "after-quake-immediate"
+      },
+      "after-quake-immediate": {
+        "action": true,
+        "instruction": "Shaking has stopped. Check yourself for injuries before helping others.\n\n1. If you are trapped: tap on a pipe or wall — do not shout unless necessary (dust inhalation risk). Use a whistle if available.\n2. Watch for broken glass and debris — wear shoes if inside.\n3. If you smell gas: do not use switches, open windows and doors, evacuate immediately, call gas emergency from outside.\n4. If there is structural damage to your building — cracks in walls, ceiling, collapsed sections — evacuate.\n5. Expect aftershocks — some can be as strong as the main quake.",
+        "next": "after-quake-assess"
+      },
+      "after-quake-assess": {
+        "question": "What is the condition of your building?",
+        "answers": [
+          { "text": "Building appears undamaged", "next": "utilities-check-quake" },
+          { "text": "Minor cracks but building seems sound", "next": "utilities-check-quake" },
+          { "text": "Significant damage — cracks in structure, collapse", "next": "structural-damage" },
+          { "text": "I am trapped in rubble", "next": "trapped-rubble" }
+        ]
+      },
+      "structural-damage": {
+        "action": true,
+        "instruction": "Evacuate the building immediately — take your medication, phone, and documents if you can reach them safely. Do NOT use lifts.\n\nOnce outside, move away from the building in case of further collapse. Do not re-enter for any reason. Call 112. Check on neighbours. Note: aftershocks will continue — stay away from damaged structures.",
+        "next": "utilities-check-quake"
+      },
+      "trapped-rubble": {
+        "action": true,
+        "instruction": "You are trapped in rubble.\n\n1. Do not light matches or use a lighter — there may be gas leaks.\n2. Cover your nose and mouth with clothing to filter dust.\n3. Tap on a pipe or wall so rescuers can hear you. Use a whistle if available.\n4. Only shout as a last resort — shouting in dusty environments risks inhalation.\n5. Try to send a text to 112 if possible — texts may get through when voice cannot.\n6. If safe to do so, use your phone torch to signal through gaps.",
+        "next": "summary-quake"
+      },
+      "utilities-check-quake": {
+        "question": "Have you checked utilities for damage?",
+        "answers": [
+          { "text": "Yes — everything looks OK", "next": "aftershock-prep" },
+          { "text": "I smell gas", "next": "quake-gas" },
+          { "text": "I can see damaged pipes or wiring", "next": "quake-utilities-damaged" },
+          { "text": "Not yet — need to check", "next": "quake-utilities-check-action" }
+        ]
+      },
+      "quake-utilities-check-action": {
+        "action": true,
+        "instruction": "Check your utilities carefully:\n- Gas: sniff near appliances and the meter. If you smell gas, turn off at the meter and evacuate.\n- Water: look for wet patches that could indicate burst pipes.\n- Electricity: look for sparks, burning smell, or damaged wiring. If in doubt, turn off at the main breaker.\n- Do not use open flames for lighting until you are sure there is no gas leak.",
+        "next": "aftershock-prep"
+      },
+      "quake-gas": {
+        "action": true,
+        "instruction": "Gas leak after an earthquake — treat this as a serious emergency.\n\n1. Do NOT use switches or anything that could create a spark.\n2. Open all windows and doors.\n3. Turn off gas at the meter.\n4. Evacuate everyone immediately.\n5. Call the gas emergency line from outside: UK 0800 111 999, Ireland 1800 20 50 50, or 112.",
+        "next": "aftershock-prep"
+      },
+      "quake-utilities-damaged": {
+        "action": true,
+        "instruction": "Turn off the relevant utility at the mains:\n- Gas: quarter-turn on the emergency control valve at the meter.\n- Electricity: switch off at the main breaker.\n- Water: turn off at the stopcock.\n\nDo not use them again until inspected by a qualified engineer. If in doubt, turn everything off and treat it as a gas leak — evacuate and call 112.",
+        "next": "aftershock-prep"
+      },
+      "aftershock-prep": {
+        "action": true,
+        "instruction": "Aftershocks WILL follow. Some can be as powerful as the main quake.\n\n1. Stay out of damaged buildings.\n2. Be ready to Drop-Cover-Hold at any moment.\n3. Move your base to open ground away from buildings if possible.\n4. Establish communications with your household and community network — use PMR446 or CB radio.\n5. Tune to emergency broadcasts on your battery radio.\n6. Check on neighbours, especially elderly and vulnerable people.\n7. Keep phones charged — use your power bank.",
+        "next": "summary-quake"
+      },
+      "summary-quake": {
+        "summary": true,
+        "title": "Earthquake — Actions Complete",
+        "points": [
+          "During shaking: DROP — COVER — HOLD ON. Do NOT run outside.",
+          "Stay away from windows, exterior walls, and anything overhead.",
+          "After shaking: check for injuries, gas leaks, structural damage.",
+          "If you smell gas: no switches, open windows, evacuate, call gas emergency from outside.",
+          "Evacuate any structurally damaged building — do NOT re-enter.",
+          "Trapped in rubble: tap on pipes, use whistle, cover mouth from dust.",
+          "Aftershocks will follow — stay away from damaged structures.",
+          "PMR446 CH1 or CB CH9 to contact your community network."
+        ],
+        "checklists": ["72-hour-kit", "comms-plan", "evacuation-plan"]
+      }
+    }
+  }
+]

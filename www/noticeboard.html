@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Noticeboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .notice-card { background:var(--surface); border-radius:8px; padding:14px 16px; margin-bottom:12px; border-left:3px solid var(--accent); }
+        .notice-title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px; }
+        .notice-body { font-size:13px; color:var(--text-muted); line-height:1.7; white-space:pre-wrap; }
+        .notice-meta { font-size:11px; color:var(--text-muted); margin-top:8px; }
+        .notice-author { color:var(--accent); font-weight:600; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="container" style="padding-bottom:80px;">
+    <div style="margin:12px 0 4px;"><a href="more.html" style="color:#6dbf5a;font-size:13px;">&#8592; More</a></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 4px;">
+        <h2 style="margin:0;">Noticeboard</h2>
+        <span style="font-size:12px;color:var(--text-muted);">RPN Community</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:13px;margin:0 0 16px;">Announcements from the RPN team.</p>
+
+    <div id="noticeList"></div>
+    <p id="emptyMsg" class="empty" style="display:none;">No announcements yet.</p>
+    <p id="guestMsg" style="display:none;text-align:center;font-size:13px;color:var(--text-muted);margin-top:12px;">Sign in to the <a href="community-auth.html" style="color:#6dbf5a;">RPN Community</a> to see all announcements.</p>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+async function init() {
+    renderNav('more');
+    registerPushNotifications();
+    await load();
+    if (!communityToken()) {
+        document.getElementById('guestMsg').style.display = '';
+    }
+    // Mark announcements as seen
+    const announcements = await communityGetAnnouncementsPublic().catch(() => []);
+    if (announcements.length) {
+        localStorage.setItem('rpn_last_seen_ann', announcements[0].id);
+    }
+}
+
+async function load(retrying) {
+    const el = document.getElementById('noticeList');
+    if (!retrying) el.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:20px;">Loading...</p>';
+    try {
+        const announcements = communityToken() ? await communityGetAnnouncements() : await communityGetAnnouncementsPublic();
+        const user = communityUser();
+        const isStaff = user && (user.is_admin || user.is_manager);
+        const empty = document.getElementById('emptyMsg');
+
+        if (!announcements.length) { el.innerHTML = ''; empty.style.display = ''; return; }
+        empty.style.display = 'none';
+
+        el.innerHTML = announcements.map(a => {
+            const date = new Date(a.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            const cs = a.author_callsign ? ` (${escHtml(a.author_callsign)})` : '';
+            return `<div class="notice-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div class="notice-title">${escHtml(a.title)}</div>
+                    ${isStaff ? `<button onclick="deleteNotice(${a.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 0 0 8px;">✕</button>` : ''}
+                </div>
+                <div class="notice-body">${escHtml(a.body)}</div>
+                <div class="notice-meta">Posted by <span class="notice-author">${escHtml(a.author_name)}${cs}</span> &mdash; ${date}</div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = `<div style="text-align:center;margin-top:20px;">
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">Could not load announcements — the server may be waking up.</p>
+            <button class="btn-primary" style="margin:0;padding:8px 20px;" onclick="load(true)">Try Again</button>
+        </div>`;
+    }
+}
+
+async function deleteNotice(id) {
+    if (!confirm('Delete this announcement?')) return;
+    try {
+        await communityDeleteAnnouncement(id);
+        await load();
+    } catch(e) { alert('Could not delete: ' + e.message); }
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
+

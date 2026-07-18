@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Article</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:16px;">
+        <a href="knowledge.html" style="color:#6dbf5a;font-size:13px;">&#8592; Knowledge Library</a>
+    </div>
+    <div id="pageContent" class="knowledge-article"><p class="empty">Loading...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const articleId = params.get('id');
+
+function init() {
+    renderNav('knowledge');
+    loadJSON('data/knowledge.json').then(data => {
+        const articles = Array.isArray(data) ? data : Object.values(data);
+        const a = articles.find(x => x.id === articleId);
+        if (!a) { document.getElementById('pageContent').innerHTML = '<p class="empty">Article not found.</p>'; return; }
+        render(a);
+    });
+}
+
+function render(a) {
+    const sections = (a.sections || []).map(s => `
+        <div class="article-section">
+            <h2>${escHtml(s.title)}</h2>
+            <div class="article-body">${renderBody(s.body)}</div>
+        </div>`).join('');
+
+    document.getElementById('pageContent').innerHTML = `
+        ${a.medical ? '<div class="medical-disclaimer"><strong>Medical Reference Only</strong> — This content is based on ERC 2021, NHS and Red Cross guidelines. It is not a substitute for professional medical training. In a life-threatening emergency always call 112.</div>' : ''}
+        <h2 style="font-size:18px;margin-bottom:8px;">${escHtml(a.title)}</h2>
+        <p class="article-summary">${escHtml(a.summary || '')}</p>
+        ${sections}
+        <div class="article-footer">
+            <p style="color:#4a5e48;font-size:12px;">
+                ${a.source ? `Source: ${escHtml(a.source)} &mdash; ` : ''}
+                <a href="knowledge.html" style="color:#6dbf5a;text-decoration:none;">Back to Library</a>
+            </p>
+        </div>`;
+
+    document.title = 'RPN Field Brain — ' + a.title;
+}
+
+function renderBody(body) {
+    if (!body) return '';
+    if (typeof body === 'string') {
+        return escHtml(body).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+    }
+    if (Array.isArray(body)) {
+        return body.map(item => {
+            if (typeof item === 'string') return `<p>${escHtml(item)}</p>`;
+            if (item.type === 'list') return `<ul style="padding-left:18px;margin:8px 0;">${(item.items||[]).map(li=>`<li style="margin-bottom:4px;">${escHtml(li)}</li>`).join('')}</ul>`;
+            if (item.type === 'numbered') return `<ol style="padding-left:18px;margin:8px 0;">${(item.items||[]).map(li=>`<li style="margin-bottom:4px;">${escHtml(li)}</li>`).join('')}</ol>`;
+            if (item.type === 'warning') return `<div style="background:#2e1a0a;border-left:3px solid #d4a017;padding:10px 14px;margin:8px 0;font-size:13px;color:#d4a017;">${escHtml(item.text)}</div>`;
+            if (item.type === 'tip') return `<div style="background:#141c12;border-left:3px solid #3a5c2e;padding:10px 14px;margin:8px 0;font-size:13px;color:#7a8f78;">${escHtml(item.text)}</div>`;
+            return '';
+        }).join('');
+    }
+    return '';
+}
+
+init();
+</script>
+</body>
+</html>
+

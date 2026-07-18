@@ -1,0 +1,162 @@
+[
+  {
+    "id": "bug-out",
+    "name": "Bug Out in 15 Minutes",
+    "category": "Evacuation",
+    "icon": "🎒",
+    "description": "Can you grab everything you need and leave your home in 15 minutes? This drill tests your bug-out readiness from a cold start.",
+    "target_time": 900,
+    "steps": [
+      "Grab your bug-out bag from its stored location",
+      "Check bag has water — minimum 2 litres per person",
+      "Check bag has food — minimum 3 days supply",
+      "Grab any prescription medications",
+      "Grab ID documents and cash",
+      "Check your power bank is charged and in the bag",
+      "Grab your radio if you have one",
+      "Tell every household member the rally point",
+      "Lock the house",
+      "Be at your designated meeting point"
+    ]
+  },
+  {
+    "id": "blackout",
+    "name": "Blackout Response",
+    "category": "Grid Down",
+    "icon": "🕯️",
+    "description": "The power just went out. Can your household transition to off-grid living in under 5 minutes? This drill tests your immediate response.",
+    "target_time": 300,
+    "steps": [
+      "Locate your primary torch without using your phone screen",
+      "Get backup lighting on in the main living area",
+      "Check your power bank — is it charged above 80%?",
+      "Turn fridge and freezer to maximum cold to slow spoilage",
+      "Check your water storage — how many days do you have?",
+      "Turn on your battery radio and find a news frequency",
+      "Confirm everyone in the household knows where candles and torches are",
+      "Note the time the power went out",
+      "Identify what heating you have if this lasts overnight",
+      "Check on any vulnerable neighbours"
+    ]
+  },
+  {
+    "id": "radio-check",
+    "name": "Radio Check",
+    "category": "Communications",
+    "icon": "📻",
+    "description": "Normal comms are down. Can you get on air and make contact within 10 minutes from a cold start?",
+    "target_time": 600,
+    "steps": [
+      "Locate your primary radio",
+      "Connect or check antenna",
+      "Power on — confirm battery level above 50%",
+      "Tune to your primary frequency (check Radio Notebook if needed)",
+      "Listen for 60 seconds — any traffic on frequency?",
+      "Make a call on your primary frequency",
+      "Log the attempt — time, frequency, result",
+      "If no response — switch to backup frequency and repeat",
+      "Try your local repeater",
+      "If all radio fails — note it and move to mesh or CB backup plan"
+    ]
+  },
+  {
+    "id": "bleeding-control",
+    "name": "Bleeding Control",
+    "category": "Medical",
+    "icon": "🩹",
+    "description": "Practice drill only. You will need a bandage or cloth and a rolled towel to simulate a limb. Do NOT practise on a real wound. Target: pressure applied within 30 seconds.",
+    "target_time": 180,
+    "steps": [
+      "Identify the bleed location (simulated on rolled towel)",
+      "Apply direct pressure immediately with cloth or dressing",
+      "Maintain firm continuous pressure — do not lift to check",
+      "After 3 minutes — has bleeding (simulation) slowed?",
+      "If not controlled — pack the wound tightly with gauze",
+      "If limb bleed not controlled after packing — apply tourniquet",
+      "Note the time tourniquet applied — write it on the skin",
+      "Keep patient warm and lying down",
+      "Call 112 or send for help",
+      "Keep talking to the patient — monitor consciousness"
+    ]
+  },
+  {
+    "id": "family-comms",
+    "name": "Family Comms Plan Test",
+    "category": "Planning",
+    "icon": "👨‍👩‍👧",
+    "description": "Does every member of your household know the emergency plan without being told? Run this unannounced if possible.",
+    "target_time": 600,
+    "steps": [
+      "Ask each family member: what is our rally point if we cannot go home?",
+      "Ask each family member: what is the out-of-area contact number?",
+      "Ask each family member: where is the bug-out bag?",
+      "Ask each family member: where is the first aid kit?",
+      "Ask each family member: where are the torches?",
+      "Ask each family member: what do we do if the power goes out overnight?",
+      "Ask each family member: what is our meeting point if we get separated?",
+      "Does every member have ICE contacts in their phone?",
+      "Does every member know to text not call in an emergency?",
+      "Does every member know the European emergency number is 112?"
+    ]
+  },
+  {
+    "id": "water-supply",
+    "name": "Water Supply Check",
+    "category": "Supplies",
+    "icon": "💧",
+    "description": "How long can your household survive on water alone if the mains goes off right now? This drill audits your water supply and purification capability.",
+    "target_time": 600,
+    "steps": [
+      "Locate all stored water in the house — count litres",
+      "Check expiry or fill dates on stored water containers",
+      "Calculate days of water at 2L per adult per day",
+      "Locate your water purification method (tablets, filter, or boiling setup)",
+      "Test your purification method — run water through it",
+      "Identify your nearest natural water source",
+      "Check you have containers to collect and transport water",
+      "Check you have fuel or means to boil water if needed",
+      "Update your stockpile app with current water levels",
+      "If under 7 days supply — plan to increase storage this week"
+    ]
+  },
+  {
+    "id": "comms-blackout",
+    "name": "Full Comms Blackout",
+    "category": "Communications",
+    "icon": "📡",
+    "description": "Mobile networks, internet, and landlines are all down. Can you communicate with your network using alternative methods only?",
+    "target_time": 1200,
+    "steps": [
+      "Switch your phone to aeroplane mode — simulate no mobile network",
+      "Get your primary radio on air",
+      "Attempt contact on your primary net frequency",
+      "Attempt contact via your local repeater",
+      "Check your MeshCore or Meshtastic device if you have one",
+      "Attempt contact via CB radio if you have one",
+      "Leave a voice message on your primary frequency for your net",
+      "Identify who in your network you were unable to reach",
+      "Note all frequencies and methods attempted in your Radio Notebook",
+      "Establish a plan for next attempt time and frequency"
+    ]
+  },
+  {
+    "id": "vehicle-readiness",
+    "name": "Vehicle Readiness Check",
+    "category": "Evacuation",
+    "icon": "🚗",
+    "description": "If you needed to leave right now, is your vehicle ready? This drill checks your vehicle is prepped for an emergency evacuation.",
+    "target_time": 900,
+    "steps": [
+      "Check fuel level — is it above half a tank?",
+      "Check tyre pressures including spare",
+      "Locate your vehicle emergency kit — torch, hi-vis, jump leads",
+      "Check you have a paper map of your area in the vehicle",
+      "Check first aid kit is in the vehicle and stocked",
+      "Check you have water and food in the vehicle (minimum 24hrs)",
+      "Check your radio or scanner is in the vehicle and working",
+      "Identify your primary bug-out route",
+      "Identify your backup bug-out route if primary is blocked",
+      "Confirm all household members know the vehicle rally point"
+    ]
+  }
+]

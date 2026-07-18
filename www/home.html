@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<div id="terms-gate" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0a120a;z-index:99999;overflow-y:auto;padding:24px 16px;">
+  <div style="max-width:420px;margin:0 auto;padding-bottom:24px;">
+    <div style="text-align:center;margin-bottom:20px;padding-top:16px;">
+      <div style="font-size:44px;margin-bottom:10px;">&#9878;</div>
+      <h2 style="margin:0 0 6px;font-size:20px;color:#d4d9d4;">Before you begin</h2>
+      <p style="color:#7a8f78;font-size:13px;margin:0;">Please read and accept the following.</p>
+    </div>
+    <div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <p style="font-size:13px;color:#d4d9d4;font-weight:600;margin:0 0 8px;">Medical Disclaimer</p>
+      <p style="font-size:12px;color:#7a8f78;line-height:1.7;margin:0 0 14px;">The medical and first aid content in this app is for reference only. It is not a substitute for professional medical training or advice. In a life-threatening emergency always call 999, 112, or your local emergency number immediately.</p>
+      <p style="font-size:13px;color:#d4d9d4;font-weight:600;margin:0 0 8px;">General Disclaimer</p>
+      <p style="font-size:12px;color:#7a8f78;line-height:1.7;margin:0 0 14px;">RPN Field Brain is provided as-is without warranty. Preparedness guidance reflects general best practice and may not suit every situation. Radio Prepper Network accepts no liability for decisions made using this app.</p>
+      <p style="font-size:13px;color:#d4d9d4;font-weight:600;margin:0 0 8px;">Terms of Use</p>
+      <p style="font-size:12px;color:#7a8f78;line-height:1.7;margin:0 0 14px;">This app is free for personal, non-commercial use. You may not redistribute, sell, or reverse-engineer it. You must be aged 16 or over.</p>
+      <p style="font-size:13px;color:#d4d9d4;font-weight:600;margin:0 0 8px;">Privacy</p>
+      <p style="font-size:12px;color:#7a8f78;line-height:1.7;margin:0;">Your data is stored on your device only. If you create a community account, your email and profile are stored securely on RPN servers. We never sell your data.</p>
+    </div>
+    <p style="font-size:11px;color:#4a5e48;text-align:center;margin:0 0 14px;">By tapping below you confirm you are 16 or over and accept these terms.</p>
+    <button id="terms-accept-btn" style="display:block;width:100%;background:#6dbf5a;color:#000;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;">I agree &#8212; continue</button>
+  </div>
+</div>
+<script>
+(function(){
+  if (!localStorage.getItem('rpn_terms_accepted')) {
+    document.getElementById('terms-gate').style.display = 'block';
+  }
+  document.getElementById('terms-accept-btn').addEventListener('click', function(){
+    localStorage.setItem('rpn_terms_accepted', '1');
+    document.getElementById('terms-gate').style.display = 'none';
+  });
+})();
+</script>
+<div class="home-main" id="main-content"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/readiness.js"></script>
+<script src="js/recommendations.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+
+function render(prep, stats, power, meds, prompts, pb, items, categoryScores, recs, recData, suppliesScores, readinessScores, resilience) {
+    _lastSuppliesScores  = suppliesScores  || null;
+    _lastReadinessScores = readinessScores || null;
+    _lastResilience      = resilience      || null;
+    // Only show red/amber when data actually exists — grey = no data entered yet
+    const foodEntered  = hasAnyFood(items || []);
+    const waterEntered = hasAnyWater(items || []);
+    const foodClass  = !foodEntered  ? '' : prep.food_days  >= 14 ? 'good' : prep.food_days  >= 3 ? 'amber' : 'red';
+    const waterClass = !waterEntered ? '' : prep.water_days >= 7  ? 'good' : prep.water_days >= 2 ? 'amber' : 'red';
+    const listClass  = stats.pct >= 80 ? 'good' : stats.pct >= 40 ? 'amber' : 'red';
+
+    // Power card — solar-aware when loads are configured
+    let powerClass, powerLabel, powerSub;
+    if (pb && pb.sustainedBySolar) {
+        powerClass = 'good'; powerLabel = '&#9728;'; powerSub = 'Solar Sustained';
+    } else if (pb && pb.daysFromStorage !== null) {
+        const d = pb.daysFromStorage;
+        powerClass = d >= 7 ? 'good' : d >= 3 ? 'amber' : 'red';
+        powerLabel = d === 0 ? '<1d' : d + 'd';
+        powerSub = pb.solarWday > 0 ? 'Days (w/ Solar)' : 'Days of Power';
+    } else if (power && power.generator_hours > 0) {
+        powerClass = power.generator_hours >= 24 ? 'good' : power.generator_hours >= 4 ? 'amber' : 'red';
+        powerLabel = power.generator_hours + 'h'; powerSub = 'Generator';
+    } else if (power && power.stored_wh > 0) {
+        powerClass = ''; powerLabel = power.stored_wh + 'Wh'; powerSub = 'Stored Power';
+    } else {
+        powerClass = ''; powerLabel = '&#8212;'; powerSub = 'Power';
+    }
+
+    const pct = stats.pct || 0;
+    const goalDays = (loadHousehold().prep_goal_days) || 30;
+    const goalLabels = {3:'72 hours',7:'1 week',14:'2 weeks',30:'1 month',90:'3 months',180:'6 months',365:'1 year'};
+    const goalLabel = goalLabels[goalDays] || goalDays + ' days';
+
+    // Two-pillar resilience scores
+    const supPct  = resilience ? resilience.supplies  : 0;
+    const redPct  = resilience ? resilience.readiness : 0;
+    const overall = resilience ? resilience.overall   : 0;
+    function scoreCol(p) { return p >= 75 ? '#6dbf5a' : p >= 50 ? '#d4a017' : '#c0392b'; }
+    const resLabel = overall >= 90 ? 'Seriously prepared' : overall >= 75 ? 'Well prepared' : overall >= 50 ? 'Work to do' : overall >= 25 ? 'Significant gaps' : 'Not prepared';
+
+    // Category bars for both pillars
+    function catBar(c) {
+        const col = c.score >= 75 ? '#6dbf5a' : c.score >= 40 ? '#d4a017' : c.score > 0 ? '#c0392b' : '#3a4a3a';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <div style="width:100px;font-size:11px;color:#7a8f78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.label}</div>
+            <div style="flex:1;background:#0f1a0f;border-radius:3px;height:5px;overflow:hidden;">
+                <div style="height:100%;width:${c.score}%;background:${col};border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+            <div style="width:32px;text-align:right;font-size:11px;color:${col};font-weight:600;">${c.score}%</div>
+        </div>`;
+    }
+    const supBars = suppliesScores  ? suppliesScores.map(catBar).join('')  : '';
+    const redBars = readinessScores ? readinessScores.map(catBar).join('') : '';
+
+    document.getElementById('main-content').innerHTML = `
+        <div class="home-hero">
+            <img src="img/rpn-logo.png" alt="RPN Logo" style="width:110px;height:110px;object-fit:contain;margin-bottom:8px;">
+            <div class="home-title">Field Brain</div>
+            <div class="home-tagline">Radio Prepper Network</div>
+        </div>
+
+        <div style="background:#131f13;border:1px solid #2a4a2a;border-radius:12px;padding:16px;margin-bottom:4px;cursor:pointer;" onclick="showScoreExplanation()">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:26px;font-weight:700;color:${scoreCol(supPct)};line-height:1;">${supPct}%</div>
+                    <div style="font-size:10px;color:#7a8f78;margin-top:3px;text-transform:uppercase;letter-spacing:1px;">Supplies</div>
+                </div>
+                <div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:26px;font-weight:700;color:${scoreCol(redPct)};line-height:1;">${redPct}%</div>
+                    <div style="font-size:10px;color:#7a8f78;margin-top:3px;text-transform:uppercase;letter-spacing:1px;">Readiness</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div style="text-align:center;flex-shrink:0;">
+                    <div style="font-size:32px;font-weight:700;color:${scoreCol(overall)};line-height:1;">${overall}%</div>
+                    <div style="font-size:11px;color:${scoreCol(overall)};font-weight:600;margin-top:2px;">${resLabel}</div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:11px;color:#7a8f78;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;">Overall Resilience</div>
+                    <div style="background:#0f1a0f;border-radius:4px;height:8px;overflow:hidden;">
+                        <div style="height:100%;width:${overall}%;background:${scoreCol(overall)};border-radius:4px;transition:width 0.4s;"></div>
+                    </div>
+                    <div style="font-size:10px;color:#4a5e48;margin-top:4px;">Goal: ${goalLabel} · <a href="household.html" style="color:#4a6a4a;text-decoration:none;" onclick="event.stopPropagation()">Change</a></div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#3a5a3a;margin-bottom:${(supPct===0&&redPct===0)?'8':'16'}px;padding:0 4px;">
+            <span onclick="showScoreExplanation()" style="cursor:pointer;border-bottom:1px dotted #3a5a3a;">See full breakdown &#8594;</span>
+        </div>
+        ${supPct===0&&redPct===0 ? '<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#7a8f78;line-height:1.6;"><strong style="color:#d4d9d4;">Your scores start at 0% — that\'s expected.</strong> Add your stockpile below and complete the preparedness assessment to build your score. Tap <span style="color:#6dbf5a;cursor:pointer;" onclick="showScoreExplanation()">See full breakdown</span> to see exactly what\'s counted.</div>' : ''}
+
+        <div class="readiness-strip">
+            <div class="readiness-card ${foodClass}">
+                <span class="rc-number">${foodEntered ? prep.food_days : '—'}</span>
+                <span class="rc-label">${foodEntered ? 'Days Food' : 'Food'}</span>
+            </div>
+            <div class="readiness-card ${waterClass}">
+                <span class="rc-number">${waterEntered ? prep.water_days : '—'}</span>
+                <span class="rc-label">${waterEntered ? 'Days Water' : 'Water'}</span>
+            </div>
+            <div class="readiness-card ${powerClass}">
+                <span class="rc-number">${powerLabel}</span>
+                <span class="rc-label">${powerSub}</span>
+            </div>
+            <div class="readiness-card ${listClass}">
+                <span class="rc-number">${pct}%</span>
+                <span class="rc-label">Lists Done</span>
+            </div>
+        </div>
+
+
+        ${(function(){
+            var fd = prep.food_days, wd = prep.water_days;
+            var has72 = fd >= 3 && wd >= 3;
+            var has7  = fd >= 7 && wd >= 7;
+            var has30 = fd >= 30 && wd >= 30;
+            var next = '';
+            if (!has72)      next = '<a href="stockpile.html" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);text-decoration:none;">&#8594; Go to stockpile to add supplies</a>';
+            else if (!has7)  next = '<a href="stockpile.html" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);text-decoration:none;">&#8594; Keep building toward 7 days</a>';
+            else if (!has30) next = '<a href="stockpile.html" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);text-decoration:none;">&#8594; Push toward 30 days</a>';
+            else             next = '<span style="display:inline-block;margin-top:8px;font-size:12px;color:#6dbf5a;">&#10003; You have hit the 30-day goal. Excellent prep.</span>';
+            function ms(done,active,label,sub) {
+                var bg = done ? '#0f2a0f' : active ? '#1a2a0a' : '#111';
+                var bc = done ? '#3a7a2a' : active ? '#4a6a10' : '#222';
+                var tc = done ? '#6dbf5a' : active ? '#b0c050' : '#555';
+                var ic = done ? '&#10003;' : active ? '&#8227;' : '&#8226;';
+                return '<div style="flex:1;background:'+bg+';border:1px solid '+bc+';border-radius:8px;padding:10px 8px;text-align:center;">'
+                    + '<div style="font-size:16px;color:'+tc+';">'+ic+'</div>'
+                    + '<div style="font-size:12px;font-weight:700;color:'+tc+';margin-top:2px;">'+label+'</div>'
+                    + '<div style="font-size:10px;color:#556655;margin-top:2px;">'+sub+'</div>'
+                    + '</div>';
+            }
+            return '<div style="margin:0 0 16px;">'
+                + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Your prep journey</div>'
+                + '<div style="display:flex;gap:8px;">'
+                + ms(has72, !has72, '72 hours', '3 days')
+                + ms(has7, has72 && !has7, '1 week', '7 days')
+                + ms(has30, has7 && !has30, '1 month', '30 days')
+                + '</div>'
+                + next
+                + '<div style="margin-top:10px;font-size:11px;color:#4a5e48;line-height:1.6;border-top:1px solid #1a2a1a;padding-top:8px;">'
+                + '<strong style="color:#556655;">How this is calculated:</strong> Milestones are based on your food and water stockpile divided by your household\'s daily needs (set in Household). '
+                + 'Power is shown separately as a comfort &amp; comms indicator — survival comes first. '
+                + 'Items marked expired or low stock are excluded from the totals.'
+                + '</div>'
+                + '</div>';
+        })()}
+        <div class="home-emergency">
+            <a href="scenarios.html" class="emergency-btn">
+                <span class="emergency-label">! EMERGENCY &mdash; WHAT DO I DO?</span>
+                <span class="emergency-sub">Tap to open the Scenario Engine</span>
+            </a>
+        </div>
+
+        ${(function() {
+            if (!recs || recs.length === 0) {
+                return '<div style="margin:0 0 20px;background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px 14px;">'
+                    + '<span style="font-size:13px;color:#6dbf5a;">&#10003; No priority actions — your prep is looking solid.</span>'
+                    + '</div>';
+            }
+            var primary = recs[0];
+            var alts = recs.slice(1, 3);
+            var pDesc = resolveDesc(primary, recData);
+            var impact = primary.scoreImpact ? '+' + primary.scoreImpact + '% score' : '';
+
+            var altHtml = alts.map(function(r) {
+                return '<a href="' + r.route + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#0f1a0f;border:1px solid #1f3a1f;border-radius:6px;padding:9px 12px;text-decoration:none;">'
+                    + '<span style="font-size:12px;color:#7a8f78;line-height:1.4;flex:1;">' + r.title + '</span>'
+                    + (r.scoreImpact ? '<span style="font-size:11px;color:#3a6a3a;white-space:nowrap;flex-shrink:0;">+' + r.scoreImpact + '%</span>' : '')
+                    + '</a>';
+            }).join('');
+
+            return '<div style="margin:0 0 20px;">'
+                + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Priority Action</div>'
+                + '<div style="background:#131f13;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;margin-bottom:8px;">'
+                + '<div style="font-size:14px;font-weight:700;color:#d4d9d4;margin-bottom:8px;line-height:1.4;">' + primary.title + '</div>'
+                + '<div style="font-size:13px;color:#7a8f78;line-height:1.6;margin-bottom:12px;">' + pDesc + '</div>'
+                + (impact ? '<div style="font-size:11px;color:#4a8a4a;margin-bottom:12px;">Estimated improvement: ' + impact + '</div>' : '')
+                + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+                + '<a href="' + primary.route + '" style="background:#6dbf5a;color:#000;font-weight:700;font-size:12px;padding:7px 14px;border-radius:6px;text-decoration:none;white-space:nowrap;">' + primary.routeLabel + '</a>'
+                + '<button onclick="handleSnooze(\'' + primary.id + '\')" style="background:none;border:1px solid #2a4a2a;color:#7a8f78;font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;">Remind me later</button>'
+                + '<button onclick="handleDismiss(\'' + primary.id + '\')" style="background:none;border:none;color:#3a5a3a;font-size:12px;padding:7px 8px;cursor:pointer;white-space:nowrap;">Not relevant</button>'
+                + '</div>'
+                + '</div>'
+                + (altHtml ? '<div style="font-size:11px;color:#4a5e48;margin-bottom:6px;">Also consider:</div><div style="display:flex;flex-direction:column;gap:6px;">' + altHtml + '</div>' : '')
+                + '</div>';
+        })()}
+
+        <div class="home-grid">
+            <a href="checklists.html" class="home-card">
+                <span class="home-card-icon">&#10003;</span>
+                <span class="home-card-title">Checklists</span>
+                <span class="home-card-desc">Track your preparedness</span>
+            </a>
+            <a href="stockpile.html" class="home-card">
+                <span class="home-card-icon">#</span>
+                <span class="home-card-title">Stockpile</span>
+                <span class="home-card-desc">Food, water &amp; supplies</span>
+            </a>
+            <a href="map.html" class="home-card">
+                <span class="home-card-icon">&#9655;</span>
+                <span class="home-card-title">Map</span>
+                <span class="home-card-desc">Pins, layers, offline tiles</span>
+            </a>
+            <a href="knowledge.html" class="home-card">
+                <span class="home-card-icon">?</span>
+                <span class="home-card-title">Knowledge</span>
+                <span class="home-card-desc">First aid, comms, survival</span>
+            </a>
+            <a href="radio.html" class="home-card">
+                <span class="home-card-icon">~</span>
+                <span class="home-card-title">Radio</span>
+                <span class="home-card-desc">Frequencies &amp; contacts</span>
+            </a>
+            <a href="drills.html" class="home-card">
+                <span class="home-card-icon">&#9654;</span>
+                <span class="home-card-title">Drills</span>
+                <span class="home-card-desc">Test your readiness</span>
+            </a>
+            <a href="medications.html" class="home-card">
+                <span class="home-card-icon">&#10010;</span>
+                <span class="home-card-title">Medications</span>
+                <span class="home-card-desc">Prescriptions &amp; supply days</span>
+            </a>
+            <a href="mesh.html" class="home-card">
+                <span class="home-card-icon">*</span>
+                <span class="home-card-title">MeshCore</span>
+                <span class="home-card-desc">Off-grid text mesh radio</span>
+            </a>
+            <a href="community-auth.html" class="home-card">
+                <span class="home-card-icon">&#127757;</span>
+                <span class="home-card-title">Community</span>
+                <span class="home-card-desc">Member map, callsigns &amp; contacts</span>
+            </a>
+            <a href="more.html" class="home-card">
+                <span class="home-card-icon">&#8942;</span>
+                <span class="home-card-title">More</span>
+                <span class="home-card-desc">Household, mesh, export</span>
+            </a>
+        </div>
+    `;
+}
+
+function showWelcome() {
+    localStorage.setItem('rpn_welcomed', '1');
+    showWizardStep('welcome');
+}
+
+function showWizardStep(step, data) {
+    data = data || {};
+    document.querySelectorAll('#onboarding-overlay').forEach(function(e){ e.remove(); });
+    var overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;';
+
+    var content = '';
+    if (step === 'welcome') {
+        content = '<div style="text-align:center;margin-bottom:20px;">'
+            + '<div style="font-size:52px;margin-bottom:12px;">&#128737;</div>'
+            + '<h2 style="margin:0 0 8px;font-size:22px;color:var(--text);">Welcome to RPN Field Brain</h2>'
+            + '<p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0;">This app helps you prepare for emergencies &mdash; power cuts, severe weather, supply shortages &mdash; before they happen.</p>'
+            + '</div>'
+            + '<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:10px;padding:16px;margin-bottom:20px;">'
+            + '<p style="margin:0 0 10px;font-size:14px;color:var(--text);font-weight:600;">The idea is simple:</p>'
+            + '<p style="margin:0 0 8px;font-size:13px;color:var(--text-muted);">&#10003;&nbsp; Know what supplies you have and how long they last</p>'
+            + '<p style="margin:0 0 8px;font-size:13px;color:var(--text-muted);">&#10003;&nbsp; Have a plan before something goes wrong</p>'
+            + '<p style="margin:0;font-size:13px;color:var(--text-muted);">&#10003;&nbsp; Connect with other prepared people nearby</p>'
+            + '</div>'
+            + '<p style="font-size:13px;color:var(--text-muted);text-align:center;margin:0 0 16px;">Takes 2 minutes to set up. Let\'s start with the basics.</p>'
+            + '<button onclick="showWizardStep(\'household\')" style="width:100%;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">Get started &rarr;</button>'
+            + '<button onclick="document.getElementById(\'onboarding-overlay\').remove();showOnboardingStep2();" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:8px;">Skip setup</button>';
+
+    } else if (step === 'household') {
+        var tiles = [1,2,3,4,5,6].map(function(n) {
+            var label = n===1 ? 'Just me' : n===2 ? '2 people' : n+' people';
+            return '<button onclick="showWizardStep(\'goal\',{people:'+n+'})"'
+                + ' style="padding:18px 8px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;color:var(--text);cursor:pointer;width:100%;display:block;">'
+                + '<div style="font-size:24px;font-weight:700;">' + n + (n===6?'+':'') + '</div>'
+                + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">' + label + '</div>'
+                + '</button>';
+        }).join('');
+        content = '<div style="text-align:center;margin-bottom:20px;">'
+            + '<div style="font-size:44px;margin-bottom:10px;">&#128106;</div>'
+            + '<h2 style="margin:0 0 8px;font-size:20px;color:var(--text);">Who are you preparing for?</h2>'
+            + '<p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin:0;">This helps the app work out how much food, water and supplies you need.</p>'
+            + '</div>'
+            + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">' + tiles + '</div>'
+            + '<button onclick="showWizardStep(\'welcome\')" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:8px;">&larr; Back</button>';
+
+    } else if (step === 'goal') {
+        var people = data.people || 1;
+        var waterL = people * 9;
+        var personWord = people===1 ? 'person' : 'people';
+        content = '<div style="text-align:center;margin-bottom:16px;">'
+            + '<div style="font-size:44px;margin-bottom:10px;">&#127919;</div>'
+            + '<h2 style="margin:0 0 8px;font-size:20px;color:var(--text);">Your first goal: 72 hours</h2>'
+            + '<p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin:0;">Most emergencies last less than 3 days. Getting to 72 hours ready puts you ahead of 90% of people.</p>'
+            + '</div>'
+            + '<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:10px;padding:16px;margin-bottom:16px;">'
+            + '<p style="font-size:12px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px;">For '+people+' '+personWord+', 72 hours means:</p>'
+            + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1f2b1d;"><span style="font-size:13px;color:var(--text);">&#128167; Drinking water</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">'+waterL+' litres</span></div>'
+            + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1f2b1d;"><span style="font-size:13px;color:var(--text);">&#127821; Food</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">3 days supply</span></div>'
+            + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1f2b1d;"><span style="font-size:13px;color:var(--text);">&#128294; Torch &amp; batteries</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">Essential</span></div>'
+            + '<div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="font-size:13px;color:var(--text);">&#129658; Basic first aid kit</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">Essential</span></div>'
+            + '</div>'
+            + '<button onclick="applyStarterPack('+people+')" style="width:100%;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">Add these to my stockpile &rarr;</button>'
+            + '<button onclick="showWizardStep(\'done\',{people:'+people+'})" style="width:100%;background:#1a2a1a;border:1px solid #2a4a2a;color:var(--text-muted);font-size:13px;cursor:pointer;padding:12px;border-radius:8px;margin-bottom:8px;">I will add items myself</button>'
+            + '<button onclick="showWizardStep(\'household\')" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:6px;">&larr; Back</button>';
+
+    } else if (step === 'done') {
+        var people = data.people || 1;
+        var personWord = people===1 ? 'person' : 'people';
+        var _p = loadHousehold(); _p.adults = people; saveHousehold(_p);
+        content = '<div style="text-align:center;margin-bottom:20px;">'
+            + '<div style="font-size:52px;margin-bottom:10px;">&#10003;</div>'
+            + '<h2 style="margin:0 0 8px;font-size:20px;color:var(--text);">You\'re all set!</h2>'
+            + '<p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0 0 6px;">Household set to <strong style="color:var(--text);">'+people+' '+personWord+'</strong>.</p>'
+            + '<p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin:0;">Your stockpile now has a starter list. Go through it, update what you already have, and add more as you go.</p>'
+            + '</div>'
+            + '<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;margin-bottom:20px;">'
+            + '<p style="font-size:13px;color:var(--text-muted);margin:0 0 6px;"><strong style="color:var(--text);">Tip:</strong> Start with water. It\'s the most important and easiest to store.</p>'
+            + '<p style="font-size:13px;color:var(--text-muted);margin:0;">Once water is sorted, work through the food list. Do not try to do it all at once.</p>'
+            + '</div>'
+            + '<button onclick="document.getElementById(\'onboarding-overlay\').remove();showAppTour(1);" style="width:100%;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">Take the quick app tour &rarr;</button>'
+            + '<button onclick="window.location.href=\'stockpile.html\';" style="width:100%;background:#1a2a1a;border:1px solid #2a4a2a;color:var(--text-muted);font-size:13px;cursor:pointer;padding:12px;border-radius:8px;margin-bottom:8px;">Go straight to my stockpile</button>'
+            + '<button onclick="document.getElementById(\'onboarding-overlay\').remove();" style="width:100%;background:none;border:none;color:#3a5a3a;font-size:12px;cursor:pointer;padding:6px;">Skip &mdash; explore on my own</button>';
+    }
+
+    overlay.innerHTML = '<div style="background:var(--surface);border-radius:14px;padding:24px;max-width:420px;width:100%;margin:auto;">' + content + '</div>';
+    document.body.appendChild(overlay);
+}
+
+function applyStarterPack(people) {
+    var profile = loadHousehold();
+    profile.adults = people;
+    saveHousehold(profile);
+
+    var existing = loadStockpile();
+    var starters = [
+        { category:'Water',   name:'Drinking Water',          weight_g: String(people*9*1000), quantity: people*9+'L',   notes:'3L per person per day for 72 hours' },
+        { category:'Food',    name:'Rice or Pasta',           food_type:'Rice',         weight_g:'3000', quantity:'3kg',     notes:'72hr supply' },
+        { category:'Food',    name:'Tinned Beans or Pulses',  food_type:'Tinned Beans', weight_g:'2400', quantity:'4 tins', notes:'72hr supply' },
+        { category:'Food',    name:'Tinned Meat or Fish',     food_type:'Tinned Meat', weight_g:'1200', quantity:'4 tins', notes:'72hr supply' },
+        { category:'Medical', name:'First Aid Kit',           quantity:'1',  notes:'Bandages, antiseptic, plasters, pain relief' },
+        { category:'Other',   name:'Torch or Flashlight',     quantity:'1',  notes:'Head torch is ideal - keeps hands free' },
+        { category:'Other',   name:'Spare AA Batteries',      quantity:'8',  notes:'Store in a cool dry place' },
+        { category:'Other',   name:'Lighter or Matches',      quantity:'2',  notes:'Waterproof matches if possible' },
+        { category:'Other',   name:'Cash Small Notes',        quantity:'1',  notes:'Card machines may not work in a power cut' }
+    ];
+    var maxId = existing.length ? Math.max.apply(null, existing.map(function(i){ return Number(i.id)||0; })) : 0;
+    var toAdd = starters.map(function(item) {
+        var o = {};
+        for (var k in item) o[k] = item[k];
+        o.id = ++maxId;
+        return o;
+    });
+    saveStockpile(existing.concat(toAdd));
+    showWizardStep('done', {people: people});
+}
+
+
+function showAppTour(step) {
+    document.querySelectorAll('#tour-overlay').forEach(function(e){ e.remove(); });
+
+    var steps = [
+        {
+            icon: '&#128202;',
+            title: 'Your Readiness Dashboard',
+            body: 'These 4 cards are the heart of the app. Each one tells you how prepared your household is right now. Green means you are in good shape. Amber means you are building toward your goal. Red means it needs attention — start there.',
+            visual: '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0;">'
+                + '<div style="border:1px solid #6dbf5a;border-radius:8px;padding:10px;text-align:center;background:rgba(109,191,90,0.08);"><div style="font-size:20px;font-weight:700;color:#6dbf5a;">21</div><div style="font-size:10px;color:#7a8f78;letter-spacing:1px;">DAYS FOOD</div><div style="font-size:9px;color:#6dbf5a;margin-top:3px;">Good</div></div>'
+                + '<div style="border:1px solid #c8a84b;border-radius:8px;padding:10px;text-align:center;background:rgba(200,168,75,0.08);"><div style="font-size:20px;font-weight:700;color:#c8a84b;">4</div><div style="font-size:10px;color:#7a8f78;letter-spacing:1px;">DAYS WATER</div><div style="font-size:9px;color:#c8a84b;margin-top:3px;">Keep building</div></div>'
+                + '<div style="border:1px solid #6dbf5a;border-radius:8px;padding:10px;text-align:center;background:rgba(109,191,90,0.08);"><div style="font-size:20px;font-weight:700;color:#6dbf5a;">500W</div><div style="font-size:10px;color:#7a8f78;letter-spacing:1px;">STORED POWER</div><div style="font-size:9px;color:#6dbf5a;margin-top:3px;">Good</div></div>'
+                + '<div style="border:1px solid #d9534f;border-radius:8px;padding:10px;text-align:center;background:rgba(217,83,79,0.08);"><div style="font-size:20px;font-weight:700;color:#d9534f;">0%</div><div style="font-size:10px;color:#7a8f78;letter-spacing:1px;">LISTS DONE</div><div style="font-size:9px;color:#d9534f;margin-top:3px;">Needs attention</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#128230;',
+            title: 'Your Stockpile',
+            body: 'Add everything you have stored at home — food, water, medicine, power banks, fuel. The app calculates how many days your household is covered and tells you what to top up first. Every item has an expiry tracker so nothing gets forgotten.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="font-size:11px;color:#4a8a3a;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;">Food</div>'
+                + '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="width:8px;height:8px;border-radius:50%;background:#6dbf5a;flex-shrink:0;"></div><div><div style="font-size:13px;color:#d4d9d4;">Rice or Pasta <span style="color:#7a8f78;font-size:11px;">6000kcal</span></div><div style="font-size:11px;color:#7a8f78;">3kg &middot; expires Jun 2027</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="width:8px;height:8px;border-radius:50%;background:#c8a84b;flex-shrink:0;"></div><div><div style="font-size:13px;color:#d4d9d4;">Tinned Beans <span style="color:#7a8f78;font-size:11px;">4800kcal</span></div><div style="font-size:11px;color:#c8a84b;">expires in 28 days</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;"><div style="width:8px;height:8px;border-radius:50%;background:#6dbf5a;flex-shrink:0;"></div><div><div style="font-size:13px;color:#d4d9d4;">Drinking Water</div><div style="font-size:11px;color:#7a8f78;">18L stored</div></div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#128680;',
+            title: 'Emergency Scenarios',
+            body: 'When something happens, open Scenarios. Power cut, flooding, gas leak, evacuation, shelter in place — each one gives you a clear step-by-step action guide written for real situations. Everything is stored on your phone. No internet connection needed, ever.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="font-size:20px;">&#9889;</div><div><div style="font-size:13px;color:#d4d9d4;font-weight:600;">Power Cut</div><div style="font-size:11px;color:#7a8f78;">What to do in the first 30 minutes</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="font-size:20px;">&#127754;</div><div><div style="font-size:13px;color:#d4d9d4;font-weight:600;">Flooding</div><div style="font-size:11px;color:#7a8f78;">Shelter, evacuation and safety steps</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="font-size:20px;">&#128663;</div><div><div style="font-size:13px;color:#d4d9d4;font-weight:600;">Evacuation</div><div style="font-size:11px;color:#7a8f78;">Leave fast, leave safe</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><div style="font-size:14px;color:#6dbf5a;font-weight:700;">&#128244;</div><div style="font-size:12px;color:#6dbf5a;font-weight:600;">All scenarios work with zero signal</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#9989;',
+            title: 'Checklists',
+            body: 'Pre-built checklists for your go-bag, first aid kit, vehicle kit, everyday carry and more. Tick items off as you sort them. You can add your own items to any list, remove ones that do not apply to you, or build a completely new list from scratch.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#127864;</span><div style="font-size:13px;color:#d4d9d4;">Go-Bag / Bug-Out Bag</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128138;</span><div style="font-size:13px;color:#d4d9d4;">First Aid Kit</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128663;</span><div style="font-size:13px;color:#d4d9d4;">Vehicle Emergency Kit</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#127381;</span><div style="font-size:13px;color:#d4d9d4;">Everyday Carry (EDC)</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;"><span style="font-size:16px;">&#10133;</span><div style="font-size:13px;color:#4a8a3a;font-weight:600;">Add your own items or create a new list</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#9201;',
+            title: 'Drills',
+            body: 'Knowing what to do is not the same as doing it under pressure. Drills are timed exercises that get your whole household practising — evacuation routes, power cut response, go-bag check. Run them regularly. You can also build your own custom drills for your specific situation.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">&#128663;</span><div><div style="font-size:13px;color:#d4d9d4;">Evacuation Drill</div><div style="font-size:11px;color:#7a8f78;">Everyone out in under 3 minutes</div></div></div><div style="font-size:11px;color:#c8a84b;font-weight:600;">5 min</div></div>'
+                + '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a2a1a;"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">&#9889;</span><div><div style="font-size:13px;color:#d4d9d4;">Power Cut Response</div><div style="font-size:11px;color:#7a8f78;">Torches, radio, check the stockpile</div></div></div><div style="font-size:11px;color:#c8a84b;font-weight:600;">10 min</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;"><span style="font-size:16px;">&#10133;</span><div style="font-size:13px;color:#4a8a3a;font-weight:600;">Create your own drill</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#128218;',
+            title: 'Knowledge Base',
+            body: 'A library of practical guides covering the skills that matter — water purification, fire and warmth, first aid, navigation, communications, food storage and more. Written for real situations. All stored on your device and fully readable with no signal.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128167;</span><div style="font-size:13px;color:#d4d9d4;">Water &amp; Purification</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128137;</span><div style="font-size:13px;color:#d4d9d4;">First Aid Essentials</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128225;</span><div style="font-size:13px;color:#d4d9d4;">Communications &amp; Radio</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#127757;</span><div style="font-size:13px;color:#d4d9d4;">Navigation Without GPS</div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;"><div style="font-size:12px;color:#6dbf5a;font-weight:600;">&#128244; Fully offline — no signal needed</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#128205;',
+            title: 'Community Map',
+            body: 'See RPN members near you on a live map. Tap any member to view their radio profile and callsign. Drop a pin to share your position in an emergency. Log radio contacts. Get push alerts from your local network when something is happening nearby. Contacts and pins work fully offline.',
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:14px;margin:16px 0;">'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128205;</span><div><div style="font-size:13px;color:#d4d9d4;">See members near you</div><div style="font-size:11px;color:#7a8f78;">Tap to view radio profile and callsign</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128228;</span><div><div style="font-size:13px;color:#d4d9d4;">Share your position</div><div style="font-size:11px;color:#7a8f78;">Drop a pin so your network knows where you are</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:16px;">&#128276;</span><div><div style="font-size:13px;color:#d4d9d4;">Push alerts from local network</div><div style="font-size:11px;color:#7a8f78;">Get notified when something is happening nearby</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;"><span style="font-size:16px;">&#128244;</span><div style="font-size:12px;color:#6dbf5a;font-weight:600;">Contacts and pins work offline</div></div>'
+                + '</div>'
+        },
+        {
+            icon: '&#127881;',
+            title: "You're ready to go",
+            body: "That's the full app. Everything works offline — no signal, no subscription, no ads. Start by going through your stockpile and updating what you already have at home. Hit your 72-hour milestone first, then build from there.",
+            visual: '<div style="background:#0f1a0f;border-radius:10px;padding:16px;margin:16px 0;text-align:center;">'
+                + '<div style="font-size:12px;color:#4a8a3a;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Your First Goal</div>'
+                + '<div style="font-size:28px;font-weight:700;color:#c8a84b;font-family:monospace;">72 Hours</div>'
+                + '<div style="font-size:13px;color:#7a8f78;margin-top:6px;">3 days of food, water and essentials<br>for every person in your household</div>'
+                + '<div style="margin-top:14px;font-size:12px;color:#4a6a4a;">Free. No subscription. Works offline.</div>'
+                + '</div>'
+        }
+    ];
+
+    var s = steps[step - 1];
+    var total = steps.length;
+
+    var dots = '';
+    for (var i = 1; i <= total; i++) {
+        dots += '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === step ? '#c8a84b' : '#2a4a2a') + ';display:inline-block;margin:0 3px;"></div>';
+    }
+
+    var nextBtn = step < total
+        ? '<button onclick="showAppTour(' + (step+1) + ')" style="width:100%;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;">Next &rarr;</button>'
+        : '<button onclick="document.getElementById(\'tour-overlay\').remove();window.location.href=\'stockpile.html\';" style="width:100%;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;font-size:15px;border:none;cursor:pointer;">Go to my stockpile &rarr;</button>';
+
+    var skipBtn = step < total
+        ? '<button onclick="document.getElementById(\'tour-overlay\').remove();window.location.href=\'stockpile.html\';" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:8px;margin-top:6px;">Skip tour</button>'
+        : '';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'tour-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = '<div style="background:var(--surface);border-radius:14px;padding:24px;max-width:420px;width:100%;margin:auto;max-height:90vh;overflow-y:auto;">'
+        + '<div style="text-align:center;margin-bottom:4px;font-size:44px;">' + s.icon + '</div>'
+        + '<div style="text-align:center;margin-bottom:4px;">' + dots + '</div>'
+        + '<div style="font-size:11px;color:#7a8f78;text-align:center;margin-bottom:14px;letter-spacing:1px;">' + step + ' of ' + total + '</div>'
+        + '<h2 style="margin:0 0 10px;font-size:19px;color:var(--text);text-align:center;">' + s.title + '</h2>'
+        + '<p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0;">' + s.body + '</p>'
+        + s.visual
+        + nextBtn
+        + skipBtn
+        + '</div>';
+    document.body.appendChild(overlay);
+}
+function showOnboardingStep2() {
+    document.querySelectorAll('#onboarding-overlay').forEach(function(e){ e.remove(); });
+    var overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = '<div style="background:var(--surface);border-radius:14px;padding:28px 24px;max-width:420px;width:100%;text-align:center;">'
+        + '<div style="font-size:36px;margin-bottom:10px;">&#127758;</div>'
+        + '<h2 style="margin:0 0 8px;font-size:20px;color:var(--text);">Join the RPN Community</h2>'
+        + '<p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0 0 20px;">Create a free account to unlock the live side of the app &mdash; community map, RPN callsign, live contacts and push notifications.</p>'
+        + '<a href="community-auth.html?mode=register" style="display:block;background:var(--accent);color:#fff;font-weight:700;padding:14px;border-radius:8px;text-decoration:none;font-size:15px;margin-bottom:10px;">Create Free Account</a>'
+        + '<a href="community-auth.html?mode=login" style="display:block;background:#1a2a1a;border:1px solid #2a4a2a;color:var(--accent);font-weight:600;padding:12px;border-radius:8px;text-decoration:none;font-size:14px;margin-bottom:14px;">Already have an account? Log in</a>'
+        + '<button onclick="document.getElementById(\'onboarding-overlay\').remove()" style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:4px;">Maybe later</button>'
+        + '</div>';
+    document.body.appendChild(overlay);
+}
+
+var _lastSuppliesScores  = null;
+var _lastReadinessScores = null;
+var _lastResilience      = null;
+
+function showScoreExplanation() {
+    if (!_lastResilience) return;
+    var supScores = _lastSuppliesScores  || [];
+    var redScores = _lastReadinessScores || [];
+    var res       = _lastResilience;
+
+    function scoreCol(p) { return p >= 75 ? '#6dbf5a' : p >= 40 ? '#d4a017' : p > 0 ? '#c0392b' : '#3a4a3a'; }
+
+    function renderCatSection(cats) {
+        return cats.map(function(c) {
+            var col = scoreCol(c.score);
+            var doneHtml = c.completed.map(function(cr) {
+                return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #1a2a1a;">'
+                    + '<span style="color:#6dbf5a;flex-shrink:0;margin-top:1px;">&#10003;</span>'
+                    + '<div style="font-size:12px;color:#6dbf5a;">' + cr.title + '</div>'
+                    + '</div>';
+            }).join('');
+            var missingHtml = c.missing.map(function(cr) {
+                return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #1a2a1a;">'
+                    + '<span style="color:#c0392b;flex-shrink:0;margin-top:1px;">&#10005;</span>'
+                    + '<div style="flex:1;">'
+                    + '<div style="font-size:12px;color:#9a9a9a;">' + cr.title + '</div>'
+                    + '<div style="font-size:11px;color:#4a5a4a;margin-top:2px;"><a href="' + cr.route + '" style="color:#5a8a5a;text-decoration:none;" onclick="closeScoreModal()">' + cr.action + ' &#8594;</a></div>'
+                    + '</div></div>';
+            }).join('');
+            return '<div style="margin-bottom:14px;">'
+                + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'
+                + '<div style="font-size:13px;font-weight:700;color:#d4d9d4;">' + c.icon + ' ' + c.label + '</div>'
+                + '<div style="font-size:13px;font-weight:700;color:' + col + ';">' + c.score + '%</div>'
+                + '</div>'
+                + '<div style="background:#0f1a0f;border-radius:4px;height:4px;overflow:hidden;margin-bottom:7px;">'
+                + '<div style="height:100%;width:' + c.score + '%;background:' + col + ';border-radius:4px;"></div>'
+                + '</div>'
+                + doneHtml + missingHtml
+                + '</div>';
+        }).join('');
+    }
+
+    var el = document.getElementById('score-explain-overlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'score-explain-overlay';
+        el.style.cssText = 'position:fixed;inset:0;background:#000a;z-index:8000;overflow-y:auto;padding:16px;';
+        el.addEventListener('click', function(ev) { if (ev.target === el) closeScoreModal(); });
+        document.body.appendChild(el);
+    }
+
+    el.innerHTML = '<div style="max-width:480px;margin:0 auto;background:#131f13;border:1px solid #2a4a2a;border-radius:12px;padding:20px;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+        + '<h2 style="margin:0;font-size:17px;color:#d4d9d4;">Resilience breakdown</h2>'
+        + '<button onclick="closeScoreModal()" style="background:none;border:none;color:#7a8f78;font-size:20px;cursor:pointer;padding:0 4px;">&#10005;</button>'
+        + '</div>'
+        + '<p style="font-size:12px;color:#556655;line-height:1.6;margin:0 0 14px;">&#10003; = met &nbsp; &#10005; = gap — tap any action to go there directly.</p>'
+
+        // Pillar summary row
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">'
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:10px;text-align:center;">'
+        + '<div style="font-size:22px;font-weight:700;color:' + scoreCol(res.supplies) + ';">' + res.supplies + '%</div>'
+        + '<div style="font-size:10px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Supplies</div>'
+        + '</div>'
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:10px;text-align:center;">'
+        + '<div style="font-size:22px;font-weight:700;color:' + scoreCol(res.readiness) + ';">' + res.readiness + '%</div>'
+        + '<div style="font-size:10px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Readiness</div>'
+        + '</div>'
+        + '</div>'
+
+        // Supplies section
+        + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a2a1a;">Supplies — what you have</div>'
+        + renderCatSection(supScores)
+
+        // Readiness section
+        + '<div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:1px;margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid #1a2a1a;">Readiness — what you know &amp; practise</div>'
+        + renderCatSection(redScores)
+
+        + '<div style="padding-top:10px;border-top:1px solid #1a2a1a;font-size:11px;color:#3a5a3a;text-align:center;">'
+        + 'Overall Resilience: ' + res.overall + '% &nbsp;=&nbsp; (' + res.supplies + '% + ' + res.readiness + '%) ÷ 2'
+        + '</div>'
+        + '</div>';
+
+    el.style.display = 'block';
+}
+
+function closeScoreModal() {
+    var el = document.getElementById('score-explain-overlay');
+    if (el) el.style.display = 'none';
+}
+
+function showAssessmentPrompt() {
+    // Don't show if user already dismissed it
+    if (localStorage.getItem('rpn_assess_prompt_dismissed')) return;
+    var el = document.getElementById('assess-prompt');
+    if (el) return;
+    var banner = document.createElement('div');
+    banner.id = 'assess-prompt';
+    banner.style.cssText = 'position:fixed;bottom:70px;left:0;right:0;z-index:500;padding:0 12px;';
+    banner.innerHTML = '<div style="background:#131f13;border:1px solid #3a6a2a;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px #000a;">'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:13px;font-weight:700;color:#d4d9d4;margin-bottom:2px;">Complete your readiness assessment</div>'
+        + '<div style="font-size:12px;color:#7a8f78;">Takes 2 minutes &mdash; gives you a real score.</div>'
+        + '</div>'
+        + '<a href="assessment.html" style="background:#6dbf5a;color:#000;font-weight:700;font-size:12px;padding:8px 14px;border-radius:6px;text-decoration:none;white-space:nowrap;">Start &rarr;</a>'
+        + '<button onclick="dismissAssessPrompt()" style="background:none;border:none;color:#3a5a3a;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;">&#10005;</button>'
+        + '</div>';
+    document.body.appendChild(banner);
+}
+
+function dismissAssessPrompt() {
+    localStorage.setItem('rpn_assess_prompt_dismissed', '1');
+    var el = document.getElementById('assess-prompt');
+    if (el) el.remove();
+}
+
+function handleDismiss(id) {
+    dismissRec(id);
+    init();
+}
+
+function handleSnooze(id) {
+    snoozeRec(id);
+    init();
+}
+
+function markAudited(type, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    recordAudit(type);
+    init();
+}
+
+function init() {
+    renderNav('home');
+
+    // Integrity check — silently fix corrupted keys, show one-time warning
+    var corrupted = checkDataIntegrity();
+    if (corrupted.length && !sessionStorage.getItem('rpn_integrity_warned')) {
+        sessionStorage.setItem('rpn_integrity_warned', '1');
+        setTimeout(function() {
+            var banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;bottom:70px;left:0;right:0;background:#2e1a0a;color:#d4a017;padding:12px 16px;font-size:13px;z-index:900;text-align:center;';
+            banner.textContent = 'Some stored data was unreadable and has been reset (' + corrupted.join(', ') + '). Consider restoring a backup.';
+            var close = document.createElement('button');
+            close.textContent = '✕';
+            close.style.cssText = 'margin-left:12px;background:none;border:none;color:#d4a017;cursor:pointer;font-size:14px;';
+            close.onclick = function() { document.body.removeChild(banner); };
+            banner.appendChild(close);
+            document.body.appendChild(banner);
+        }, 1000);
+    }
+
+    // Storage quota warning
+    checkStorageQuota(function(pct) {
+        if (!pct) return;
+        var banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;bottom:70px;left:0;right:0;background:#2e1a1a;color:#c0392b;padding:12px 16px;font-size:13px;z-index:900;text-align:center;';
+        banner.innerHTML = 'Storage ' + pct + '% full. <a href="more.html" style="color:#e07070;">Export a backup</a> and clear old data to avoid data loss.';
+        var close = document.createElement('button');
+        close.textContent = '✕';
+        close.style.cssText = 'margin-left:12px;background:none;border:none;color:#c0392b;cursor:pointer;font-size:14px;';
+        close.onclick = function() { document.body.removeChild(banner); };
+        banner.appendChild(close);
+        document.body.appendChild(banner);
+    });
+
+    if (!localStorage.getItem('rpn_welcomed')) {
+        setTimeout(showWelcome, 300);
+    } else if (!localStorage.getItem('rpn_assessment_done')) {
+        setTimeout(showAssessmentPrompt, 400);
+    } else if (localStorage.getItem('rpn_terms_accepted') && !localStorage.getItem('rpn_signup_prompted') && !communityToken()) {
+        localStorage.setItem('rpn_signup_prompted', '1');
+        setTimeout(showOnboardingStep2, 300);
+    }
+
+    registerPushNotifications();
+
+    const items = applyExpiryStatus(loadStockpile());
+    const profile = loadHousehold();
+    const prep = calculatePreparedness(items, profile);
+    const power = calculatePower(items);
+    const psh = getSolarPsh(
+        localStorage.getItem('rpn_solar_zone')    || 'moderate',
+        localStorage.getItem('rpn_solar_season')  || 'spring_autumn',
+        localStorage.getItem('rpn_solar_weather') || 'good'
+    );
+    const powerBudget = calculatePowerBudget(items, loadPowerLoads(), psh);
+    const medReadiness = calculateMedReadiness(loadMedications());
+
+    const drillLog = (loadDrillData().log || []);
+
+    loadJSON('data/checklists.json').then(builtins => {
+        const stats = checklistStats(builtins);
+        const prompts = generatePrompts(items, medReadiness, drillLog, stats);
+        const rdData = buildReadinessData(items, prep, powerBudget, medReadiness, stats.pct, drillLog);
+        const supScores = computeSuppliesScores(rdData);
+        const redScores = computeReadinessScores(rdData);
+        const resilience = computeResilienceScore(supScores, redScores);
+        const catScores = supScores.concat(redScores);
+        const recData = buildRecData(items, prep, powerBudget, medReadiness, stats.pct, drillLog, profile);
+        const recs = getRankedRecommendations(recData, 3);
+        render(prep, stats, power, medReadiness, prompts, powerBudget, items, catScores, recs, recData, supScores, redScores, resilience);
+    }).catch(() => {
+        const prompts = generatePrompts(items, medReadiness, drillLog, { pct: 0, total: 0 });
+        const rdData = buildReadinessData(items, prep, powerBudget, medReadiness, 0, drillLog);
+        const supScores = computeSuppliesScores(rdData);
+        const redScores = computeReadinessScores(rdData);
+        const resilience = computeResilienceScore(supScores, redScores);
+        const catScores = supScores.concat(redScores);
+        const recData = buildRecData(items, prep, powerBudget, medReadiness, 0, drillLog, profile);
+        const recs = getRankedRecommendations(recData, 3);
+        render(prep, { pct: 0 }, power, medReadiness, prompts, powerBudget, items, catScores, recs, recData, supScores, redScores, resilience);
+    });
+}
+
+init();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+}
+</script>
+</body>
+</html>
+

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Power Budget</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div id="modalOverlay" style="display:none;position:fixed;inset:0;background:#000a;z-index:500;overflow-y:auto;padding:20px;">
+  <div style="max-width:480px;margin:0 auto;background:#1a2018;border:1px solid #3a5c2e;border-radius:8px;padding:24px;">
+    <h2 id="modalTitle" style="margin-bottom:16px;">Add a device</h2>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<main>
+<div id="pageContent"></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+const LOAD_PRESETS = [
+    { label: 'MeshCore node',        category: 'Communications', watts: 5,   hours_per_day: 24 },
+    { label: 'Radio (receive/TX)',    category: 'Communications', watts: 10,  hours_per_day: 8  },
+    { label: 'Phone charging',        category: 'Communications', watts: 10,  hours_per_day: 2  },
+    { label: 'Laptop',               category: 'Computing',      watts: 45,  hours_per_day: 8  },
+    { label: 'Tablet',               category: 'Computing',      watts: 15,  hours_per_day: 6  },
+    { label: 'LED lamp',             category: 'Lighting',       watts: 10,  hours_per_day: 6  },
+    { label: 'LED strip',            category: 'Lighting',       watts: 20,  hours_per_day: 4  },
+    { label: 'Mini fridge',          category: 'Refrigeration',  watts: 60,  hours_per_day: 12 },
+    { label: 'Starlink Mini',        category: 'Communications', watts: 40,  hours_per_day: 8  },
+    { label: 'Water pump (12V)',     category: 'Other',          watts: 60,  hours_per_day: 1  },
+];
+
+const LOAD_CATS = ['Communications', 'Computing', 'Lighting', 'Refrigeration', 'Medical', 'Other'];
+
+const CAT_ICONS = {
+    Communications: '📡', Computing: '💻', Lighting: '💡',
+    Refrigeration: '❄️', Medical: '🩺', Other: '⚡',
+};
+
+const DEVICE_TILES = [
+    { icon: '📱', label: 'Phone',          preset: 'Phone charging' },
+    { icon: '📡', label: 'Radio',          preset: 'Radio (receive/TX)' },
+    { icon: '💡', label: 'LED lamp',       preset: 'LED lamp' },
+    { icon: '💻', label: 'Laptop',         preset: 'Laptop' },
+    { icon: '🔌', label: 'MeshCore',       preset: 'MeshCore node' },
+    { icon: '❄️', label: 'Mini fridge',    preset: 'Mini fridge' },
+    { icon: '🌐', label: 'Starlink',       preset: 'Starlink Mini' },
+    { icon: '💡', label: 'LED strip',      preset: 'LED strip' },
+    { icon: '✏️', label: 'Other device',   preset: null },
+];
+
+let editingLoadId = null;
+let _pendingLoad  = null;
+
+function init() {
+    renderNav('power');
+    renderPage();
+}
+
+function getPowerOpts() {
+    return {
+        solarEff:   Number(localStorage.getItem('rpn_solar_eff'))   || 80,
+        batteryEff: Number(localStorage.getItem('rpn_battery_eff')) || 85,
+    };
+}
+
+function renderPage() {
+    const items  = applyExpiryStatus(loadStockpile());
+    const loads  = loadPowerLoads();
+    const zone    = localStorage.getItem('rpn_solar_zone')    || 'moderate';
+    const season  = localStorage.getItem('rpn_solar_season')  || 'spring_autumn';
+    const weather = localStorage.getItem('rpn_solar_weather') || 'good';
+    const psh  = getSolarPsh(zone, season, weather);
+    const opts = getPowerOpts();
+    const b    = calculatePowerBudget(items, loads, psh, opts);
+
+    const hasSources   = b.totalStoredWh > 0 || b.solarWday > 0;
+    const hasSolarItem = items.some(i => i.category === 'Power' && i.power_type === 'Solar Panel');
+
+    const ZONES = [
+        { key: 'very_high',       label: 'Very High',         hint: 'North Africa, Middle East, SW USA, Australia' },
+        { key: 'high',            label: 'High',              hint: 'S. Europe, S. USA, central Asia' },
+        { key: 'moderate',        label: 'Moderate',          hint: 'C. Europe, UK, most of USA, China' },
+        { key: 'low',             label: 'Low',               hint: 'N. Europe, Canada, Russia' },
+        { key: 'very_low_winter', label: 'Very Low (Winter)', hint: 'Scandinavia, Iceland, Alaska, N. Canada' },
+    ];
+    const SEASONS = [
+        { key: 'summer',        label: 'Summer' },
+        { key: 'spring_autumn', label: 'Spring / Autumn' },
+        { key: 'winter',        label: 'Winter' },
+    ];
+    const WEATHERS = [
+        { key: 'excellent', label: '☀️ Excellent' },
+        { key: 'good',      label: '🌤 Good' },
+        { key: 'mixed',     label: '⛅ Mixed' },
+        { key: 'overcast',  label: '🌧 Overcast' },
+    ];
+
+    const btn = (active) =>
+        `padding:7px 10px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid #3a5c2e;text-align:center;` +
+        `background:${active?'#2a4a2a':'#0f1a0f'};color:${active?'#6dbf5a':'#7a8f78'};`;
+
+    // ── 4-number headline summary ─────────────────────────────────────
+    const summaryCard = hasSources ? (() => {
+        const rows = [
+            b.ratedStoredWh > 0  ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:13px;color:#d4d9d4;">Battery storage</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">${b.ratedStoredWh}&thinsp;Wh rated &nbsp;·&nbsp; ${b.usableStoredWh}&thinsp;Wh usable</span></div>` : '',
+            b.generatorWh   > 0  ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:13px;color:#d4d9d4;">Generator fuel energy</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">${b.generatorWh}&thinsp;Wh</span></div>` : '',
+            b.totalSolarW   > 0  ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:13px;color:#d4d9d4;">Solar panel capacity</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">${b.totalSolarW}&thinsp;W rated</span></div>` : '',
+            b.solarWday     > 0  ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2a1a;"><span style="font-size:13px;color:#d4d9d4;">Est. daily solar production</span><span style="font-size:13px;color:#6dbf5a;font-weight:600;">~${b.solarWday}&thinsp;Wh/day</span></div>` : '',
+            loads.length > 0     ? `<div style="display:flex;justify-content:space-between;padding:7px 0;"><span style="font-size:13px;color:#d4d9d4;">Daily device consumption</span><span style="font-size:13px;color:#d4a017;font-weight:600;">${b.totalWday}&thinsp;Wh/day</span></div>` : '',
+        ].filter(Boolean).join('');
+        return `<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px 14px;margin-bottom:12px;">${rows || '<div style="font-size:13px;color:#4a5e48;">Add devices below to see consumption.</div>'}</div>`;
+    })() : '';
+
+    // ── Solar + efficiency settings ────────────────────────────────────
+    const BATTERY_CHEMISTRIES = [
+        { key: '90', label: 'LiFePO4',    hint: '90%' },
+        { key: '85', label: 'Li-Ion',     hint: '85%' },
+        { key: '50', label: 'Lead-acid',  hint: '50%' },
+        { key: 'custom', label: 'Custom', hint: '' },
+    ];
+    const solarPanel = hasSolarItem ? `
+    <div style="background:#0d170d;border:1px solid #1f2f1f;border-radius:8px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Solar Climate Settings</div>
+
+        <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Climate Zone</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+            ${ZONES.map(z => `<button onclick="setSolarZone('${z.key}')" title="${z.hint}"
+                style="${btn(zone===z.key)}flex:1;min-width:80px;">${z.label}</button>`).join('')}
+        </div>
+
+        <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Season</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+            ${SEASONS.map(s => `<button onclick="setSolarSeason('${s.key}')"
+                style="${btn(season===s.key)}flex:1;">${s.label}</button>`).join('')}
+        </div>
+
+        <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Weather Conditions</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+            ${WEATHERS.map(w => `<button onclick="setSolarWeather('${w.key}')"
+                style="${btn(weather===w.key)}flex:1;">${w.label}</button>`).join('')}
+        </div>
+
+        <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Solar System Efficiency</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
+            ${[70,75,80,85,90].map(p => `<button onclick="setSolarEff(${p})"
+                style="${btn(opts.solarEff===p)}flex:1;">${p}%</button>`).join('')}
+        </div>
+        <div style="font-size:11px;color:#3a5a3a;margin-bottom:8px;">
+            Effective PSH: <strong style="color:#6dbf5a;">${psh}h</strong>
+            &nbsp;·&nbsp; Solar = ${b.totalSolarW}W × ${psh}h × ${opts.solarEff}% = <strong style="color:#6dbf5a;">~${b.solarWday} Wh/day</strong>
+        </div>
+        <p style="font-size:11px;color:#4a5e48;margin:0 0 0;line-height:1.6;">
+            &#9432;&nbsp;<strong style="color:#556655;">Solar output is an estimate.</strong>
+            Weather, shade, panel angle, temperature and equipment losses can significantly reduce actual production.
+            Default efficiency (80%) is a conservative real-world estimate for a typical setup.
+        </p>
+    </div>` : '';
+
+    // ── Battery usable % settings (shown when batteries present) ──────
+    const batterySettings = b.ratedStoredWh > 0 ? `
+    <details style="margin-bottom:12px;">
+        <summary style="font-size:12px;color:#4a6a4a;cursor:pointer;user-select:none;list-style:none;">&#9432; Battery usable capacity settings</summary>
+        <div style="margin-top:10px;background:#0d170d;border:1px solid #1f2f1f;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Battery chemistry (sets usable %)</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
+                ${BATTERY_CHEMISTRIES.filter(c=>c.key!=='custom').map(c => `<button onclick="setBatteryEff(${c.key})"
+                    style="${btn(opts.batteryEff===Number(c.key))}flex:1;" title="${c.hint} usable">${c.label}<br><span style="font-size:10px;opacity:0.7;">${c.hint}</span></button>`).join('')}
+            </div>
+            <div style="font-size:11px;color:#4a5e48;margin-bottom:5px;">Or set exact usable percentage</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
+                ${[50,60,70,80,85,90,95,100].map(p => `<button onclick="setBatteryEff(${p})"
+                    style="${btn(opts.batteryEff===p)}flex:1;min-width:36px;">${p}%</button>`).join('')}
+            </div>
+            <div style="font-size:11px;color:#3a5a3a;">
+                Usable: ${b.usableStoredWh} Wh (${b.ratedStoredWh} Wh × ${opts.batteryEff}%)
+            </div>
+            <p style="font-size:11px;color:#4a5e48;margin:6px 0 0;line-height:1.5;">LiFePO4 batteries can safely discharge to 90%+ of rated capacity. Lead-acid batteries should not go below 50% to avoid damage.</p>
+        </div>
+    </details>` : '';
+
+    // Prompt: no power sources
+    if (!hasSources) {
+        document.getElementById('pageContent').innerHTML = `
+        <h2>&#9889; Power Budget</h2>
+        <p class="form-hint">Add batteries, a generator or solar panels in <a href="stockpile.html" style="color:#6dbf5a;">Stockpile &rarr; Power</a> to see your power estimate.</p>
+        ${solarPanel}
+        <div style="background:#131f13;border:1px solid #2a4a2a;border-radius:8px;padding:16px;margin-bottom:14px;">
+            <div style="font-size:13px;color:#7a8f78;text-align:center;margin-bottom:12px;">No power sources configured yet.</div>
+            <a href="stockpile.html" class="btn-primary" style="display:block;text-align:center;padding:10px;text-decoration:none;">Go to Stockpile &rarr;</a>
+        </div>
+        ${deviceSection(loads)}
+        `;
+        return;
+    }
+
+    // Prompt: sources but no loads
+    if (loads.length === 0) {
+        document.getElementById('pageContent').innerHTML = `
+        <h2>&#9889; Power Budget</h2>
+        ${summaryCard}
+        ${solarPanel}
+        ${batterySettings}
+        <div style="background:#131f13;border:1px solid #2a4a2a;border-radius:8px;padding:16px;margin-bottom:14px;">
+            <div style="font-size:13px;color:#7a8f78;text-align:center;margin-bottom:12px;">Add the devices you plan to run to see how long your power will last.</div>
+            <button class="btn-primary" style="font-size:13px;padding:10px 14px;width:100%;" onclick="openAddLoad()">+ Add a device</button>
+        </div>
+        `;
+        return;
+    }
+
+    // Status config
+    const STATUS = {
+        strong_surplus: { col: '#6dbf5a', label: '⚡ Strong Surplus' },
+        sustainable:    { col: '#6dbf5a', label: '✓ Sustainable' },
+        marginal:       { col: '#d4a017', label: '⚠ Marginal' },
+        draining:       { col: '#d4a017', label: '↘ Slowly Draining' },
+        unsustainable:  { col: '#c0392b', label: '✕ Unsustainable' },
+    };
+    const st = b.statusLevel ? STATUS[b.statusLevel] : null;
+
+    // Card 1 — Daily operation
+    const card1 = (() => {
+        if (st) {
+            const surplusLine = b.dailySurplus >= 0
+                ? `<div style="color:#6dbf5a;font-size:13px;">Daily surplus: +${b.dailySurplus} Wh</div>`
+                : `<div style="color:#d4a017;font-size:13px;">Daily shortfall: ${Math.abs(b.dailySurplus)} Wh (drawn from storage)</div>`;
+            return `<div style="background:#0f1a0f;border:1px solid ${st.col};border-radius:8px;padding:12px;margin-bottom:8px;">
+                <div style="font-size:11px;color:#7a8f78;margin-bottom:6px;">DAILY OPERATION</div>
+                <div style="font-size:16px;font-weight:700;color:${st.col};margin-bottom:8px;">${st.label}</div>
+                <div style="font-size:13px;color:#b0b8b0;margin-bottom:2px;">Using: ${b.totalWday} Wh/day</div>
+                <div style="font-size:13px;color:#b0b8b0;margin-bottom:6px;">Solar est.: ~${b.solarWday} Wh/day (${b.solarRatedWday} Wh rated)</div>
+                ${surplusLine}
+            </div>`;
+        }
+        const col = b.daysFromStorage !== null
+            ? (b.daysFromStorage >= 7 ? '#6dbf5a' : b.daysFromStorage >= 3 ? '#d4a017' : '#c0392b')
+            : '#7a8f78';
+        const daysStr = b.daysFromStorage === null ? '—' : b.daysFromStorage === 0 ? '<1 day' : `~${b.daysFromStorage} days`;
+        return `<div style="background:#0f1a0f;border:1px solid ${col};border-radius:8px;padding:12px;margin-bottom:8px;text-align:center;">
+            <div style="font-size:11px;color:#7a8f78;margin-bottom:6px;">STORAGE ONLY</div>
+            <div style="font-size:32px;font-weight:700;color:${col};line-height:1;margin-bottom:4px;">${daysStr}</div>
+            <div style="font-size:13px;color:#7a8f78;">at ${b.totalWday} Wh/day consumption</div>
+        </div>`;
+    })();
+
+    // Card 2 — Blackout autonomy
+    const card2 = (() => {
+        if (b.daysNoSolar === null) return '';
+        const col = b.daysNoSolar >= 7 ? '#6dbf5a' : b.daysNoSolar >= 3 ? '#d4a017' : '#c0392b';
+        return `<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="font-size:11px;color:#7a8f78;margin-bottom:6px;">BLACKOUT AUTONOMY (no solar)</div>
+            <div style="font-size:24px;font-weight:700;color:${col};margin-bottom:4px;">~${b.daysNoSolar} day${b.daysNoSolar===1?'':'s'}</div>
+            <div style="font-size:12px;color:#7a8f78;">${b.usableStoredWh} Wh usable storage (${b.ratedStoredWh} Wh rated × 85%) ÷ ${b.totalWday} Wh/day</div>
+        </div>`;
+    })();
+
+    // Card 3 — Battery recovery
+    const card3 = (() => {
+        if (!hasSolarItem) return '';
+        if (b.daysToRecharge !== null) {
+            return `<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px;margin-bottom:8px;">
+                <div style="font-size:11px;color:#7a8f78;margin-bottom:6px;">BATTERY RECOVERY (from empty)</div>
+                <div style="font-size:24px;font-weight:700;color:#6dbf5a;margin-bottom:4px;">~${b.daysToRecharge} good-sun day${b.daysToRecharge===1?'':'s'}</div>
+                <div style="font-size:12px;color:#7a8f78;">${b.dailySurplus} Wh/day surplus charging ${b.usableStoredWh} Wh bank · longer if devices running</div>
+            </div>`;
+        }
+        return `<div style="background:#0f1a0f;border:1px solid #2a4a2a;border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="font-size:11px;color:#7a8f78;margin-bottom:6px;">BATTERY RECOVERY (from empty)</div>
+            <div style="font-size:13px;color:#4a5e48;">Solar cannot cover daily use in current conditions — batteries will not recover unless you reduce consumption or improve solar input.</div>
+        </div>`;
+    })();
+
+    // Tech detail
+    const techLines = [
+        b.ratedStoredWh > 0 ? `Rated storage: ${b.ratedStoredWh} Wh · Usable (×85%): ${b.usableStoredWh} Wh` : '',
+        b.generatorWh   > 0 ? `Generator fuel: ${b.generatorWh} Wh` : '',
+        b.solarRatedWday > 0 ? `Panel rated output: ${b.solarRatedWday} Wh/day · After 80% efficiency: ${b.solarWday} Wh/day` : '',
+        `Total daily consumption: ${b.totalWday} Wh/day`,
+        hasSolarItem ? `Effective peak sun hours: ${psh}h (zone: ${zone.replace(/_/g,' ')}, season: ${season.replace('_',' ')}, weather: ${weather})` : '',
+    ].filter(Boolean);
+
+    document.getElementById('pageContent').innerHTML = `
+    <h2>&#9889; Power Budget</h2>
+    ${summaryCard}
+    ${solarPanel}
+    ${batterySettings}
+    ${card1}${card2}${card3}
+    ${deviceSection(loads)}
+    <details style="margin-top:14px;">
+        <summary style="font-size:12px;color:#4a6a4a;cursor:pointer;user-select:none;list-style:none;">&#9662; See the numbers</summary>
+        <div style="margin-top:10px;background:#0f1a0f;border-radius:6px;padding:10px 12px;">
+            ${techLines.map(l => `<div style="font-size:12px;color:#7a8f78;padding:3px 0;">${l}</div>`).join('')}
+        </div>
+    </details>
+    <div style="font-size:11px;color:#4a5e48;line-height:1.7;margin-top:12px;padding:10px 12px;background:#0d170d;border-radius:6px;border:1px solid #1a2a1a;">
+        <strong style="color:#556655;">How these figures are calculated:</strong><br>
+        <strong style="color:#4a6a4a;">Daily operation</strong> &mdash; continuous devices: W &times; hours/day = Wh/day. Rechargeable devices: battery Wh &times; charges/day. Solar: panel W &times; peak-sun hours &times; system efficiency (not daylight hours). The status shows whether solar covers your daily use under the selected conditions.<br>
+        <strong style="color:#4a6a4a;">Blackout autonomy</strong> &mdash; usable battery storage (rated capacity &times; usable %) &divide; total daily consumption. This is how long you last with zero solar input.<br>
+        <strong style="color:#4a6a4a;">Battery recovery</strong> &mdash; solar surplus per day &divide; battery capacity. How many good-sun days to refill from empty. If solar cannot cover daily use, batteries will not recover.
+    </div>
+    `;
+}
+
+function deviceSection(loads) {
+    const rows = loads.map(l => {
+        let detail, wh;
+        if (Number(l.battery_wh) > 0) {
+            wh = Math.round((Number(l.battery_wh)||0) * (Number(l.charges_per_day)||1));
+            detail = `${l.battery_wh}&thinsp;Wh &times; ${l.charges_per_day}&times;/day &middot; ${wh}&thinsp;Wh/day`;
+        } else {
+            wh = Math.round((Number(l.watts)||0) * (Number(l.hours_per_day)||0));
+            detail = `${l.watts}&thinsp;W &times; ${l.hours_per_day}h/day &middot; ${wh}&thinsp;Wh/day`;
+        }
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #1f2b1d;gap:8px;">
+            <div style="flex:1;min-width:0;">
+                <span style="font-size:14px;color:#d4d9d4;">${CAT_ICONS[l.category]||'&#9889;'} ${escHtml(l.name)}</span>
+                <span style="font-size:12px;color:#4a5e48;margin-left:6px;">${detail}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button class="btn-edit" onclick="openEditLoad(${l.id})">Edit</button>
+                <button class="delete" onclick="deleteLoad(${l.id})">Del</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    return `<div style="background:#131f13;border:1px solid #2a4a2a;border-radius:8px;padding:14px;margin-bottom:8px;">
+        <div style="font-size:11px;color:#7a8f78;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Devices on your list</div>
+        ${rows || '<div style="font-size:13px;color:#4a5e48;text-align:center;padding:8px 0;">No devices added yet.</div>'}
+        <button class="btn-primary" style="font-size:13px;padding:10px 14px;margin-top:10px;width:100%;" onclick="openAddLoad()">+ Add a device</button>
+        <p style="font-size:11px;color:#4a5e48;margin:8px 0 0;">Add batteries and solar panels in <a href="stockpile.html" style="color:#6dbf5a;">Stockpile → Power</a>.</p>
+    </div>`;
+}
+
+function setSolarZone(val)    { localStorage.setItem('rpn_solar_zone',    val); renderPage(); }
+function setSolarSeason(val)  { localStorage.setItem('rpn_solar_season',  val); renderPage(); }
+function setSolarWeather(val) { localStorage.setItem('rpn_solar_weather', val); renderPage(); }
+function setSolarEff(val)     { localStorage.setItem('rpn_solar_eff',     val); renderPage(); }
+function setBatteryEff(val)   { localStorage.setItem('rpn_battery_eff',   val); renderPage(); }
+
+function openAddLoad() {
+    editingLoadId = null;
+    _pendingLoad  = null;
+    document.getElementById('modalTitle').textContent = 'Add a device';
+    document.getElementById('modalBody').innerHTML = buildDevicePicker();
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+function buildDevicePicker() {
+    const tiles = DEVICE_TILES.map(d => `
+        <button type="button" onclick="pickDevice(this.dataset.preset||null)" data-preset="${escHtml(d.preset||'')}"
+            style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:8px;padding:12px 6px;text-align:center;cursor:pointer;color:#d4d9d4;width:100%;">
+            <div style="font-size:22px;margin-bottom:5px;">${d.icon}</div>
+            <div style="font-size:11px;line-height:1.3;color:#b0b8b0;">${d.label}</div>
+        </button>`).join('');
+    return `
+    <p style="font-size:14px;color:#7a8f78;margin:0 0 14px;">What do you want to power?</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">${tiles}</div>
+    <button type="button" class="btn-cancel" onclick="closeModal()" style="width:100%;">Cancel</button>`;
+}
+
+function pickDevice(presetLabel) {
+    if (presetLabel === 'null' || presetLabel === '') presetLabel = null;
+    const preset = presetLabel ? LOAD_PRESETS.find(p => p.label === presetLabel) : null;
+    _pendingLoad = preset
+        ? { name: preset.label, watts: preset.watts, hours_per_day: preset.hours_per_day, category: preset.category }
+        : { name: '', watts: '', hours_per_day: '', category: 'Other' };
+    const isCustom = !preset;
+    document.getElementById('modalTitle').textContent = preset ? preset.label : 'Other device';
+    document.getElementById('modalBody').innerHTML = buildHoursForm(_pendingLoad, isCustom, true);
+}
+
+function buildHoursForm(load, isCustom, showBack) {
+    const catOpts = LOAD_CATS.map(c => `<option value="${c}"${load.category===c?' selected':''}>${c}</option>`).join('');
+    const isRechargeable = !!load.battery_wh;
+    const typeToggle = `
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button type="button" id="btn_continuous" onclick="setDeviceType('continuous')"
+            style="flex:1;padding:8px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid #3a5c2e;
+            background:${!isRechargeable?'#2a4a2a':'#0f1a0f'};color:${!isRechargeable?'#6dbf5a':'#7a8f78'};">
+            &#9654; Continuous use<br><span style="font-size:10px;opacity:0.7;">Runs for hours at a time</span>
+        </button>
+        <button type="button" id="btn_rechargeable" onclick="setDeviceType('rechargeable')"
+            style="flex:1;padding:8px;font-size:12px;border-radius:6px;cursor:pointer;border:1px solid #3a5c2e;
+            background:${isRechargeable?'#2a4a2a':'#0f1a0f'};color:${isRechargeable?'#6dbf5a':'#7a8f78'};">
+            &#128267; Rechargeable<br><span style="font-size:10px;opacity:0.7;">Has its own battery</span>
+        </button>
+    </div>
+    <div id="continuous_fields" style="display:${isRechargeable?'none':'block'}">
+        <label class="input-label" style="display:block;margin-bottom:6px;">Power draw in watts
+            <input type="number" id="f_lwatts" value="${escHtml(String(load.watts||''))}" placeholder="e.g. 10" min="0" step="0.5">
+        </label>
+        <label class="input-label" style="display:block;margin-bottom:6px;">Hours per day
+            <input type="number" id="f_lhours" value="${escHtml(String(load.hours_per_day||''))}"
+                placeholder="e.g. 8" min="0.5" max="24" step="0.5" style="font-size:20px;padding:10px;margin-top:4px;">
+        </label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            ${[0.5,1,2,4,8,24].map(h => `<button type="button" onclick="document.getElementById('f_lhours').value=${h}"
+                style="flex:1;min-width:40px;padding:6px 4px;font-size:12px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:5px;color:#7a8f78;cursor:pointer;">${h}h</button>`).join('')}
+        </div>
+        <p style="font-size:11px;color:#4a5e48;margin:0 0 10px;line-height:1.5;">Not sure? Weekly total &divide; 7 days. E.g. radio 3&times; per week for 2h = 1h/day.</p>
+    </div>
+    <div id="rechargeable_fields" style="display:${isRechargeable?'block':'none'}">
+        <label class="input-label" style="display:block;margin-bottom:6px;">Battery capacity (Wh)
+            <input type="number" id="f_lbattery_wh" value="${escHtml(String(load.battery_wh||''))}" placeholder="e.g. 18 for a phone" min="0" step="1">
+        </label>
+        <p style="font-size:11px;color:#4a5e48;margin:0 0 8px;line-height:1.5;">Find Wh on the battery label, or multiply mAh &times; voltage &divide; 1000. A typical phone battery is 12&ndash;20&thinsp;Wh.</p>
+        <label class="input-label" style="display:block;margin-bottom:6px;">Full charges per day
+            <input type="number" id="f_lcharges" value="${escHtml(String(load.charges_per_day||'1'))}" placeholder="e.g. 1" min="0.25" step="0.25">
+        </label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            ${[0.25,0.5,1,2,3].map(c => `<button type="button" onclick="document.getElementById('f_lcharges').value=${c}"
+                style="flex:1;min-width:36px;padding:6px 4px;font-size:12px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:5px;color:#7a8f78;cursor:pointer;">${c}&times;</button>`).join('')}
+        </div>
+        <p style="font-size:11px;color:#4a5e48;margin:0 0 10px;line-height:1.5;">Only count a full charge if you actually drain it that often. Phone used lightly = 0.5 charges/day.</p>
+    </div>`;
+
+    return `
+    ${isCustom ? `
+    <div class="form-row" style="margin-bottom:10px;">
+        <label class="input-label" style="flex:1">Device name
+            <input type="text" id="f_lname" value="${escHtml(load.name||'')}" placeholder="e.g. Ham radio">
+        </label>
+    </div>
+    <div class="form-row" style="margin-bottom:10px;">
+        <label class="input-label" style="flex:1">Category
+            <select id="f_lcat">${catOpts}</select>
+        </label>
+    </div>` : `
+    <input type="hidden" id="f_lname" value="${escHtml(load.name)}">
+    <input type="hidden" id="f_lwatts" value="${load.watts}">
+    <input type="hidden" id="f_lcat" value="${escHtml(load.category)}">`}
+    ${typeToggle}
+    <details style="margin-bottom:14px;">
+        <summary style="font-size:12px;color:#3a6a38;cursor:pointer;list-style:none;">&#9432; How does this work?</summary>
+        <div style="margin-top:10px;background:#0f1a0f;border-radius:6px;padding:12px;font-size:12px;color:#7a8f78;line-height:1.7;">
+            <p style="margin:0 0 8px;"><strong style="color:#d4d9d4;">Continuous devices</strong> (radios, lamps, pumps): W &times; hours/day = Wh/day consumed.</p>
+            <p style="margin:0 0 8px;"><strong style="color:#d4d9d4;">Rechargeable devices</strong> (phones, laptops): battery Wh &times; charges/day = Wh/day consumed. Only count full charges you actually do each day.</p>
+            <p style="margin:0 0 8px;"><strong style="color:#d4d9d4;">Solar changes everything.</strong> If your panel produces more than you use, your batteries become cloudy-day backup rather than your primary supply.</p>
+            <p style="margin:0;">The numbers do not need to be exact — even a rough estimate shows whether you have days or weeks of power.</p>
+        </div>
+    </details>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-primary" style="flex:1;" onclick="saveLoad()">Save</button>
+        ${showBack ? `<button type="button" style="background:#1a2a1a;border:1px solid #2a4a2a;color:#7a8f78;padding:10px 14px;border-radius:6px;cursor:pointer;" onclick="openAddLoad()">&larr; Back</button>` : ''}
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>`;
+}
+
+function openEditLoad(id) {
+    id = Number(id);
+    const load = loadPowerLoads().find(l => Number(l.id) === id);
+    if (!load) return;
+    editingLoadId = id;
+    _pendingLoad  = load;
+    document.getElementById('modalTitle').textContent = 'Edit — ' + load.name;
+    document.getElementById('modalBody').innerHTML = buildHoursForm(load, true, false);
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+function setDeviceType(type) {
+    document.getElementById('continuous_fields').style.display  = type === 'continuous'  ? 'block' : 'none';
+    document.getElementById('rechargeable_fields').style.display = type === 'rechargeable' ? 'block' : 'none';
+    document.getElementById('btn_continuous').style.background  = type === 'continuous'  ? '#2a4a2a' : '#0f1a0f';
+    document.getElementById('btn_continuous').style.color       = type === 'continuous'  ? '#6dbf5a' : '#7a8f78';
+    document.getElementById('btn_rechargeable').style.background = type === 'rechargeable' ? '#2a4a2a' : '#0f1a0f';
+    document.getElementById('btn_rechargeable').style.color      = type === 'rechargeable' ? '#6dbf5a' : '#7a8f78';
+}
+
+function saveLoad() {
+    const name = document.getElementById('f_lname').value.trim();
+    if (!name) { alert('Enter a device name.'); return; }
+    const catEl = document.getElementById('f_lcat');
+    const category = catEl ? catEl.value : ((_pendingLoad && _pendingLoad.category) || 'Other');
+
+    const isRechargeable = document.getElementById('rechargeable_fields') &&
+        document.getElementById('rechargeable_fields').style.display !== 'none';
+
+    let entry;
+    if (isRechargeable) {
+        const battery_wh = parseFloat(document.getElementById('f_lbattery_wh').value) || 0;
+        const charges_per_day = parseFloat(document.getElementById('f_lcharges').value) || 1;
+        if (!battery_wh) { alert('Enter the battery capacity in Wh.'); return; }
+        entry = { name, category, battery_wh, charges_per_day, watts: 0, hours_per_day: 0 };
+    } else {
+        const wattsEl = document.getElementById('f_lwatts');
+        const watts = parseFloat(wattsEl ? wattsEl.value : '') || (_pendingLoad ? _pendingLoad.watts : 0) || 0;
+        const hours_per_day = parseFloat(document.getElementById('f_lhours').value) || 0;
+        if (!hours_per_day) { alert('Enter how many hours a day you will run this.'); return; }
+        entry = { name, category, watts, hours_per_day };
+    }
+
+    const loads = loadPowerLoads();
+    if (editingLoadId !== null) {
+        const idx = loads.findIndex(l => Number(l.id) === Number(editingLoadId));
+        if (idx !== -1) loads[idx] = Object.assign({ id: editingLoadId }, entry);
+    } else {
+        const newId = loads.length ? Math.max.apply(null, loads.map(l => Number(l.id)||0)) + 1 : 1;
+        loads.push(Object.assign({ id: newId }, entry));
+    }
+    savePowerLoads(loads);
+    closeModal();
+    renderPage();
+}
+
+function deleteLoad(id) {
+    id = Number(id);
+    if (!confirm('Remove this device from the list?')) return;
+    savePowerLoads(loadPowerLoads().filter(l => Number(l.id) !== id));
+    renderPage();
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>

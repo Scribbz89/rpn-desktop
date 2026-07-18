@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Logbook</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .log-card { background:var(--surface); border-radius:8px; padding:12px 14px; margin-bottom:10px; border-left:3px solid var(--accent); }
+        .log-callsign { font-size:17px; font-weight:700; color:var(--accent); }
+        .log-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+        .log-detail { font-size:13px; color:var(--text); margin-top:6px; }
+        .log-live-badge { display:inline-block; background:#ff6b3522; color:#ff6b35; border-radius:4px; padding:1px 7px; font-size:11px; margin-left:6px; }
+        .form-row { display:flex; gap:8px; }
+        .form-row > * { flex:1; }
+        .section-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin:16px 0 6px; }
+        .member-result { background:var(--surface); border-radius:6px; padding:8px 12px; margin-bottom:6px; cursor:pointer; border:1px solid transparent; }
+        .member-result.selected { border-color:var(--accent); }
+        .member-result:active { opacity:0.7; }
+        .live-toggle-wrap { display:flex; align-items:center; gap:10px; margin:10px 0 4px; }
+        .live-toggle-wrap label { font-size:13px; color:var(--text); }
+        .request-card { background:#ff6b3511; border-left:3px solid #ff6b35; border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+        .request-card .req-title { font-size:14px; font-weight:600; color:#ff6b35; }
+        .request-card .req-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="container" style="padding-bottom:80px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 10px;">
+        <h2 style="margin:0;">Logbook</h2>
+        <button class="btn-primary" style="margin:0;padding:8px 16px;" onclick="showAddForm()">+ Log Contact</button>
+    </div>
+
+    <!-- Live contact requests banner -->
+    <div id="liveRequestsBanner" style="display:none;"></div>
+
+    <!-- Log entries -->
+    <div id="logList"></div>
+    <p id="emptyMsg" class="empty" style="display:none;">No contacts logged yet.</p>
+
+    <!-- Add log form -->
+    <div id="addForm" style="display:none;background:var(--surface);border-radius:10px;padding:16px;margin-bottom:16px;">
+        <h3 style="margin:0 0 4px;">Log a Contact</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;line-height:1.6;">Record each radio contact you make. Contacts linked to RPN members can appear on the community map.</p>
+
+        <div class="section-title">Their Callsign</div>
+        <input type="text" id="theirCallsign" placeholder="e.g. M0XYZ, RPN-042" oninput="onCallsignInput()">
+
+        <!-- RPN member search results -->
+        <div id="memberSearchWrap" style="display:none;margin-top:4px;">
+            <div id="memberResults"></div>
+        </div>
+        <div id="selectedMemberBadge" style="display:none;background:#6dbf5a22;border-radius:6px;padding:6px 10px;font-size:13px;color:var(--accent);margin-top:6px;">
+            <span id="selectedMemberName"></span> <button onclick="clearMember()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;float:right;">✕</button>
+        </div>
+
+        <div class="section-title">Contact Details</div>
+        <div class="form-row">
+            <input type="text" id="logFrequency" placeholder="Frequency / Channel">
+            <select id="logMode">
+                <option value="">Mode</option>
+                <option>FM</option><option>AM</option><option>SSB</option>
+                <option>DMR</option><option>FT8</option><option>CW</option>
+                <option>APRS</option><option>MeshCore</option><option>Other</option>
+            </select>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin:3px 0 0;line-height:1.6;">FM = standard VHF/UHF voice · SSB = long-range HF voice · DMR = digital voice · FT8 = weak-signal digital · CW = Morse code · APRS = packet/GPS beacon · MeshCore = LoRa mesh</p>
+        <div class="form-row" style="margin-top:6px;">
+            <input type="text" id="logRstSent"     placeholder="RST Sent (e.g. 59)">
+            <input type="text" id="logRstReceived" placeholder="RST Received">
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin:3px 0 0;line-height:1.6;">RST = Readability (1–5) / Signal Strength (1–9) / Tone (1–9). For FM voice just use RS: 59 means perfectly clear. Leave blank if you don't use signal reports.</p>
+        <textarea id="logNotes" placeholder="Notes (optional)" style="margin-top:6px;"></textarea>
+
+        <!-- Non-member location picker -->
+        <div id="nonMemberLocationWrap" style="display:none;">
+            <div class="section-title">General Location of Contact</div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">Not an RPN member — tap the map to mark the general area of the contact.</p>
+            <div id="locationPickerMap" style="height:160px;border-radius:8px;overflow:hidden;"></div>
+            <input type="text" id="logLat" placeholder="Latitude"  readonly style="margin-top:6px;">
+            <input type="text" id="logLng" placeholder="Longitude" readonly style="margin-top:4px;">
+        </div>
+
+        <!-- Live map toggle — shown when an RPN member is selected -->
+        <div id="liveToggleWrap" style="display:none;">
+            <div class="section-title">Share Live on Map (RPN Member)</div>
+            <div class="live-toggle-wrap">
+                <input type="checkbox" id="liveToggle" onchange="onLiveToggle()">
+                <label for="liveToggle">Request live map with this RPN member</label>
+            </div>
+            <div id="liveDurationWrap" style="display:none;">
+                <select id="liveDuration" style="margin-bottom:10px;">
+                    <option value="0.5">30 minutes</option>
+                    <option value="1" selected>1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="4">4 hours</option>
+                    <option value="8">8 hours</option>
+                </select>
+
+                <div class="section-title" style="margin-top:0;">Your Location for this Contact</div>
+                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                    <button class="btn-primary" style="flex:1;margin:0;padding:8px;font-size:13px;" onclick="useMyGpsLive()">📍 Use GPS</button>
+                    <button class="btn-cancel" style="flex:1;margin:0;padding:8px;font-size:13px;" onclick="showLivePicker()">🗺 Pick on Map</button>
+                </div>
+                <div id="myLiveLocationStatus" style="font-size:12px;color:var(--accent);margin-bottom:6px;display:none;"></div>
+                <div id="livePickerMapWrap" style="display:none;">
+                    <div id="livePickerMap" style="height:160px;border-radius:8px;overflow:hidden;margin-bottom:6px;"></div>
+                </div>
+                <input type="hidden" id="myLiveLat">
+                <input type="hidden" id="myLiveLng">
+
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">A notification will be sent to the other member asking their permission. They will also choose their location.</p>
+            </div>
+        </div>
+
+        <!-- Public map toggle — available for any contact -->
+        <div class="section-title">Broadcast on Map</div>
+        <div class="live-toggle-wrap">
+            <input type="checkbox" id="publicMapToggle" onchange="onPublicMapToggle()">
+            <label for="publicMapToggle">Show this contact publicly on the map</label>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin:3px 0 0;line-height:1.6;">Draws a line between your location and the other station on the RPN community map. Visible to all logged-in members for the selected duration, then removed automatically.</p>
+        <div id="publicMapWrap" style="display:none;">
+            <select id="publicMapDuration" style="margin-bottom:10px;">
+                <option value="0.5">30 minutes</option>
+                <option value="1" selected>1 hour</option>
+                <option value="2">2 hours</option>
+                <option value="4">4 hours</option>
+                <option value="8">8 hours</option>
+            </select>
+
+            <div class="section-title" style="margin-top:0;">Your Location</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <button class="btn-primary" style="flex:1;margin:0;padding:8px;font-size:13px;" onclick="useMyGpsPublic()">📍 Use GPS</button>
+                <button class="btn-cancel" style="flex:1;margin:0;padding:8px;font-size:13px;" onclick="showPublicMyPicker()">🗺 Pick on Map</button>
+            </div>
+            <div id="myPublicLocationStatus" style="font-size:12px;color:var(--accent);margin-bottom:6px;display:none;"></div>
+            <div id="publicMyPickerWrap" style="display:none;">
+                <div id="publicMyPickerMap" style="height:150px;border-radius:8px;overflow:hidden;margin-bottom:6px;"></div>
+            </div>
+            <input type="hidden" id="myPublicLat">
+            <input type="hidden" id="myPublicLng">
+
+            <div class="section-title" style="margin-top:4px;">Other Station Location</div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">Search for a place or tap the map to mark their approximate location.</p>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <input type="text" id="otherStationSearch" placeholder="Search place or town…" style="flex:1;margin:0;">
+                <button class="btn-primary" style="margin:0;padding:8px 12px;font-size:13px;" onclick="searchOtherStationPlace()">Go</button>
+            </div>
+            <div id="publicTheirPickerMap" style="height:150px;border-radius:8px;overflow:hidden;margin-bottom:6px;"></div>
+            <input type="hidden" id="theirPublicLat">
+            <input type="hidden" id="theirPublicLng">
+            <div id="theirLocationStatus" style="font-size:12px;color:var(--accent);margin-bottom:4px;display:none;"></div>
+            <p style="font-size:11px;color:var(--text-muted);margin:0;">Visible to all RPN members while active.</p>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:14px;">
+            <button class="btn-primary" style="flex:1;margin:0;padding:10px;" onclick="saveLog()">Save</button>
+            <button class="btn-cancel" style="margin:0;padding:10px;" onclick="hideAddForm()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script src="js/leaflet.js"></script>
+<link rel="stylesheet" href="css/leaflet.css">
+<script>
+let locationPickerMap = null;
+let locationPickerMarker = null;
+let livePickerMap = null;
+let livePickerMarker = null;
+let publicMyPickerMap = null;
+let publicMyPickerMarker = null;
+let publicTheirPickerMap = null;
+let publicTheirPickerMarker = null;
+let selectedMemberId = null;
+let logs = [];
+
+async function init() {
+    renderNav('logbook');
+    registerPushNotifications();
+    loadLocalLogs();
+    if (communityToken()) {
+        await syncLogs();
+        await loadPendingRequests();
+    }
+}
+
+// --- Local log storage ---
+
+function getLocalLogs() {
+    const d = localStorage.getItem('rpn_logbook');
+    return d ? JSON.parse(d) : [];
+}
+
+function saveLocalLogs(data) {
+    localStorage.setItem('rpn_logbook', JSON.stringify(data));
+}
+
+function loadLocalLogs() {
+    logs = getLocalLogs();
+    renderLogs();
+}
+
+async function syncLogs() {
+    try {
+        const serverLogs = await communityGetLogs();
+        // Merge server logs into local (server is source of truth for synced logs)
+        const local = getLocalLogs().filter(l => l.local_only);
+        logs = [...serverLogs.map(l => ({...l, synced: true})), ...local];
+        logs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        renderLogs();
+    } catch(e) { /* offline — local only */ }
+}
+
+async function loadPendingRequests() {
+    try {
+        const requests = await communityGetPendingLiveRequests();
+        const banner = document.getElementById('liveRequestsBanner');
+        if (!requests.length) { banner.style.display = 'none'; return; }
+        banner.style.display = '';
+        banner.innerHTML = requests.map(r => `
+            <div class="request-card">
+                <div class="req-title">📡 Live Contact Request</div>
+                <div class="req-meta">${escHtml(r.requester_name)} (${escHtml(r.requester_callsign || '—')}) wants to show your QSO live on the map</div>
+                ${r.frequency ? `<div class="req-meta" style="margin-top:2px;">📻 ${escHtml(r.frequency)}${r.mode ? ' · ' + escHtml(r.mode) : ''}</div>` : ''}
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="btn-primary" style="flex:1;margin:0;padding:8px;" onclick="acceptLiveRequest(${r.id})">Accept</button>
+                    <button class="btn-cancel" style="margin:0;padding:8px;" onclick="declineLiveRequest(${r.id})">Decline</button>
+                </div>
+            </div>`).join('');
+    } catch(e) { /* offline */ }
+}
+
+async function acceptLiveRequest(id) {
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            try {
+                await communityAcceptLiveRequest(id, pos.coords.latitude, pos.coords.longitude);
+                await loadPendingRequests();
+            } catch(e) { alert('Could not accept: ' + e.message); }
+        },
+        async () => {
+            // No GPS — try profile location fallback
+            try {
+                const me = communityUser();
+                const lat = me && me.lat ? me.lat : null;
+                const lng = me && me.lng ? me.lng : null;
+                await communityAcceptLiveRequest(id, lat, lng);
+                await loadPendingRequests();
+            } catch(e) { alert('Could not accept: ' + e.message); }
+        },
+        { timeout: 5000, maximumAge: 60000 }
+    );
+}
+
+async function declineLiveRequest(id) {
+    try {
+        await communityDeclineLiveRequest(id);
+        await loadPendingRequests();
+    } catch(e) { alert('Could not decline: ' + e.message); }
+}
+
+function renderLogs() {
+    const el = document.getElementById('logList');
+    const empty = document.getElementById('emptyMsg');
+    if (!logs.length) { el.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    el.innerHTML = logs.map(log => {
+        const date = new Date(log.created_at).toLocaleString();
+        const details = [log.frequency, log.mode, log.rst_sent ? `RST: ${log.rst_sent}/${log.rst_received || '?'}` : null].filter(Boolean).join(' · ');
+        return `<div class="log-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                    <span class="log-callsign">${escHtml(log.their_callsign)}</span>
+                    ${log.their_member_id ? '<span class="log-live-badge">RPN</span>' : ''}
+                </div>
+                ${log.synced ? `<button onclick="deleteLog(${log.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>` : ''}
+            </div>
+            ${details ? `<div class="log-detail">${escHtml(details)}</div>` : ''}
+            ${log.notes ? `<div class="log-detail" style="color:var(--text-muted);margin-top:3px;">${escHtml(log.notes)}</div>` : ''}
+            <div class="log-meta">${date}${log.local_only ? ' · local only' : ''}</div>
+        </div>`;
+    }).join('');
+}
+
+async function deleteLog(id) {
+    if (!confirm('Delete this log entry?')) return;
+    try {
+        await communityDeleteLog(id);
+        logs = logs.filter(l => l.id !== id);
+        renderLogs();
+    } catch(e) { alert('Could not delete: ' + e.message); }
+}
+
+// --- Add form ---
+
+function showAddForm() {
+    document.getElementById('addForm').style.display = '';
+    document.getElementById('addForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideAddForm() {
+    document.getElementById('addForm').style.display = 'none';
+    resetForm();
+}
+
+function resetForm() {
+    document.getElementById('theirCallsign').value   = '';
+    document.getElementById('logFrequency').value    = '';
+    document.getElementById('logMode').value         = '';
+    document.getElementById('logRstSent').value      = '';
+    document.getElementById('logRstReceived').value  = '';
+    document.getElementById('logNotes').value        = '';
+    document.getElementById('logLat').value          = '';
+    document.getElementById('logLng').value          = '';
+    document.getElementById('liveToggle').checked    = false;
+    document.getElementById('memberResults').innerHTML = '';
+    document.getElementById('liveDurationWrap').style.display = 'none';
+    document.getElementById('liveToggleWrap').style.display = 'none';
+    document.getElementById('nonMemberLocationWrap').style.display = 'none';
+    document.getElementById('selectedMemberBadge').style.display = 'none';
+    document.getElementById('memberSearchWrap').style.display = 'none';
+    document.getElementById('myLiveLocationStatus').style.display = 'none';
+    document.getElementById('livePickerMapWrap').style.display = 'none';
+    document.getElementById('myLiveLat').value = '';
+    document.getElementById('myLiveLng').value = '';
+    document.getElementById('publicMapToggle').checked = false;
+    document.getElementById('publicMapWrap').style.display = 'none';
+    document.getElementById('myPublicLat').value = '';
+    document.getElementById('myPublicLng').value = '';
+    document.getElementById('theirPublicLat').value = '';
+    document.getElementById('theirPublicLng').value = '';
+    document.getElementById('myPublicLocationStatus').style.display = 'none';
+    document.getElementById('publicMyPickerWrap').style.display = 'none';
+    document.getElementById('theirLocationStatus').style.display = 'none';
+    document.getElementById('otherStationSearch').value = '';
+    selectedMemberId = null;
+    if (locationPickerMarker) { locationPickerMarker.remove(); locationPickerMarker = null; }
+    if (livePickerMarker) { livePickerMarker.remove(); livePickerMarker = null; }
+    if (publicMyPickerMarker) { publicMyPickerMarker.remove(); publicMyPickerMarker = null; }
+    if (publicTheirPickerMarker) { publicTheirPickerMarker.remove(); publicTheirPickerMarker = null; }
+}
+
+let searchTimeout = null;
+function onCallsignInput() {
+    const val = document.getElementById('theirCallsign').value.trim();
+    clearTimeout(searchTimeout);
+    if (val.length < 2) {
+        document.getElementById('memberSearchWrap').style.display = 'none';
+        document.getElementById('memberResults').innerHTML = '';
+        clearMember();
+        return;
+    }
+    if (!communityToken()) {
+        document.getElementById('memberSearchWrap').style.display = '';
+        document.getElementById('memberResults').innerHTML = '<p style="font-size:12px;color:var(--text-muted);margin:4px 0;"><a href="community-auth.html" style="color:#6dbf5a;">Sign in to RPN Community</a> to search members</p>';
+        return;
+    }
+    searchTimeout = setTimeout(async () => {
+        const el = document.getElementById('memberResults');
+        document.getElementById('memberSearchWrap').style.display = '';
+        el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);margin:4px 0;">Searching...</p>';
+        try {
+            const results = await communitySearchMembers(val);
+            if (!results.length) { el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);margin:4px 0;">No members found</p>'; return; }
+            el.innerHTML = results.map(m => {
+                const cs = m.rpn_callsign || m.callsign || 'No callsign';
+                return `<div class="member-result" onclick="selectMember(${m.id}, '${escHtml(m.name)}', '${escHtml(cs)}')">
+                    <strong style="color:var(--text);font-size:13px;">${escHtml(m.name)}</strong>
+                    <span style="color:var(--accent);font-size:12px;margin-left:6px;">${escHtml(cs)}</span>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            el.innerHTML = `<p style="font-size:12px;color:#c0392b;margin:4px 0;">Search failed: ${e.message}</p>`;
+        }
+    }, 300);
+}
+
+function selectMember(id, name, callsign) {
+    selectedMemberId = id;
+    document.getElementById('theirCallsign').value = callsign;
+    document.getElementById('selectedMemberName').textContent = name + ' (' + callsign + ')';
+    document.getElementById('selectedMemberBadge').style.display = '';
+    document.getElementById('memberResults').innerHTML = '';
+    document.getElementById('memberSearch').value = '';
+    document.getElementById('nonMemberLocationWrap').style.display = 'none';
+    // Always show live toggle for RPN members — they pick location at submit time
+    if (communityToken()) {
+        document.getElementById('liveToggleWrap').style.display = '';
+    }
+}
+
+function clearMember() {
+    selectedMemberId = null;
+    selectedMemberHasLocation = false;
+    document.getElementById('selectedMemberBadge').style.display = 'none';
+    document.getElementById('liveToggleWrap').style.display = 'none';
+    document.getElementById('liveToggle').checked = false;
+    document.getElementById('liveDurationWrap').style.display = 'none';
+    // Show location picker for non-member contact
+    if (document.getElementById('theirCallsign').value.trim()) {
+        initLocationPicker();
+        document.getElementById('nonMemberLocationWrap').style.display = '';
+    }
+}
+
+function onLiveToggle() {
+    const on = document.getElementById('liveToggle').checked;
+    document.getElementById('liveDurationWrap').style.display = on ? '' : 'none';
+    if (!on) {
+        document.getElementById('myLiveLat').value = '';
+        document.getElementById('myLiveLng').value = '';
+        document.getElementById('myLiveLocationStatus').style.display = 'none';
+        document.getElementById('livePickerMapWrap').style.display = 'none';
+    }
+}
+
+function useMyGpsLive() {
+    const status = document.getElementById('myLiveLocationStatus');
+    status.textContent = 'Getting GPS...';
+    status.style.display = '';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            document.getElementById('myLiveLat').value = pos.coords.latitude;
+            document.getElementById('myLiveLng').value = pos.coords.longitude;
+            status.textContent = '📍 GPS location set (' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4) + ')';
+            document.getElementById('livePickerMapWrap').style.display = 'none';
+        },
+        () => { status.textContent = 'GPS unavailable — pick on map instead.'; }
+    );
+}
+
+function showLivePicker() {
+    document.getElementById('livePickerMapWrap').style.display = '';
+    if (livePickerMap) { livePickerMap.invalidateSize(); return; }
+    setTimeout(() => {
+        livePickerMap = L.map('livePickerMap').setView([54, -2], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(livePickerMap);
+        livePickerMap.on('click', function(e) {
+            if (livePickerMarker) livePickerMarker.remove();
+            livePickerMarker = L.marker(e.latlng).addTo(livePickerMap);
+            document.getElementById('myLiveLat').value = e.latlng.lat;
+            document.getElementById('myLiveLng').value = e.latlng.lng;
+            const status = document.getElementById('myLiveLocationStatus');
+            status.textContent = '📍 Location set (' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) + ')';
+            status.style.display = '';
+        });
+    }, 100);
+}
+
+function initLocationPicker() {
+    if (locationPickerMap) return;
+    setTimeout(() => {
+        locationPickerMap = L.map('locationPickerMap').setView([54, -2], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(locationPickerMap);
+        locationPickerMap.on('click', function(e) {
+            if (locationPickerMarker) locationPickerMarker.remove();
+            locationPickerMarker = L.marker(e.latlng).addTo(locationPickerMap);
+            document.getElementById('logLat').value = e.latlng.lat.toFixed(6);
+            document.getElementById('logLng').value = e.latlng.lng.toFixed(6);
+        });
+    }, 100);
+}
+
+async function saveLog() {
+    const callsign = document.getElementById('theirCallsign').value.trim();
+    if (!callsign) { alert('Callsign is required.'); return; }
+
+    const liveOn   = document.getElementById('liveToggle').checked;
+    const publicOn = document.getElementById('publicMapToggle').checked;
+    const lat      = parseFloat(document.getElementById('logLat').value) || null;
+    const lng      = parseFloat(document.getElementById('logLng').value) || null;
+    const myLat    = parseFloat(document.getElementById('myLiveLat').value) || null;
+    const myLng    = parseFloat(document.getElementById('myLiveLng').value) || null;
+    const myPubLat = parseFloat(document.getElementById('myPublicLat').value) || null;
+    const myPubLng = parseFloat(document.getElementById('myPublicLng').value) || null;
+    const theirPubLat = parseFloat(document.getElementById('theirPublicLat').value) || null;
+    const theirPubLng = parseFloat(document.getElementById('theirPublicLng').value) || null;
+
+    if (liveOn && selectedMemberId && (!myLat || !myLng)) {
+        alert('Please set your location before sharing live on the map — use GPS or pick on map.');
+        return;
+    }
+    if (publicOn) {
+        if (!myPubLat || !myPubLng) { alert('Please set your location for the public map.'); return; }
+        if (!theirPubLat || !theirPubLng) { alert('Please mark the other station\'s location on the map.'); return; }
+    }
+
+    const payload = {
+        their_callsign:      callsign,
+        their_member_id:     selectedMemberId,
+        frequency:           document.getElementById('logFrequency').value.trim() || null,
+        mode:                document.getElementById('logMode').value || null,
+        rst_sent:            document.getElementById('logRstSent').value.trim() || null,
+        rst_received:        document.getElementById('logRstReceived').value.trim() || null,
+        notes:               document.getElementById('logNotes').value.trim() || null,
+        lat:                 publicOn ? theirPubLat : (selectedMemberId ? null : lat),
+        lng:                 publicOn ? theirPubLng : (selectedMemberId ? null : lng),
+        live_duration_hours: (liveOn && selectedMemberId) ? parseFloat(document.getElementById('liveDuration').value) : null,
+        my_lat:              publicOn ? myPubLat : ((liveOn && selectedMemberId) ? myLat : null),
+        my_lng:              publicOn ? myPubLng : ((liveOn && selectedMemberId) ? myLng : null),
+        show_on_map:         publicOn,
+        map_duration_hours:  publicOn ? parseFloat(document.getElementById('publicMapDuration').value) : null,
+    };
+
+    if (communityToken()) {
+        try {
+            const saved = await communityCreateLog(payload);
+            logs.unshift({ ...saved, synced: true });
+            renderLogs();
+            if (liveOn && selectedMemberId) {
+                alert('Contact logged! A notification has been sent to the other member asking their permission to show it live on the map.');
+            }
+        } catch(e) {
+            if (e.message.includes('location')) { alert(e.message); return; }
+            saveLocally(payload);
+        }
+    } else {
+        saveLocally(payload);
+    }
+
+    autoStoreToNotebook(payload);
+    hideAddForm();
+}
+
+function autoStoreToNotebook(payload) {
+    if (!payload.their_callsign) return;
+    const data = loadRadio();
+    data.contacts = data.contacts || [];
+    const callsignLower = payload.their_callsign.toLowerCase();
+    const exists = data.contacts.some(c => (c.callsign || '').toLowerCase() === callsignLower);
+    if (exists) return; // already in notebook
+    const entry = {
+        name:      '',
+        callsign:  payload.their_callsign,
+        frequency: payload.frequency || '',
+        schedule:  '',
+        notes:     payload.mode ? `Mode: ${payload.mode}` : '',
+    };
+    data.contacts.unshift(entry);
+    saveRadio(data);
+}
+
+function saveLocally(payload) {
+    const local = getLocalLogs();
+    const entry = { ...payload, id: Date.now(), created_at: new Date().toISOString(), local_only: true };
+    local.unshift(entry);
+    saveLocalLogs(local);
+    logs = local;
+    renderLogs();
+}
+
+function onPublicMapToggle() {
+    const on = document.getElementById('publicMapToggle').checked;
+    document.getElementById('publicMapWrap').style.display = on ? '' : 'none';
+    if (on) {
+        setTimeout(() => initPublicTheirPicker(), 150);
+        setTimeout(() => initPublicMyPicker(), 150);
+    }
+}
+
+function useMyGpsPublic() {
+    const status = document.getElementById('myPublicLocationStatus');
+    status.textContent = 'Getting GPS...';
+    status.style.display = '';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            document.getElementById('myPublicLat').value = pos.coords.latitude;
+            document.getElementById('myPublicLng').value = pos.coords.longitude;
+            status.textContent = '📍 GPS set (' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4) + ')';
+            document.getElementById('publicMyPickerWrap').style.display = 'none';
+            if (publicMyPickerMap && publicMyPickerMarker) publicMyPickerMarker.remove();
+            if (publicMyPickerMap) {
+                publicMyPickerMap.setView([pos.coords.latitude, pos.coords.longitude], 10);
+                publicMyPickerMarker = L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(publicMyPickerMap);
+            }
+        },
+        () => { status.textContent = 'GPS unavailable — pick on map instead.'; status.style.display = ''; }
+    );
+}
+
+function showPublicMyPicker() {
+    document.getElementById('publicMyPickerWrap').style.display = '';
+    if (publicMyPickerMap) { publicMyPickerMap.invalidateSize(); return; }
+    initPublicMyPicker();
+}
+
+function initPublicMyPicker() {
+    if (publicMyPickerMap) return;
+    setTimeout(() => {
+        publicMyPickerMap = L.map('publicMyPickerMap').setView([54, -2], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(publicMyPickerMap);
+        publicMyPickerMap.on('click', function(e) {
+            if (publicMyPickerMarker) publicMyPickerMarker.remove();
+            publicMyPickerMarker = L.marker(e.latlng).addTo(publicMyPickerMap);
+            document.getElementById('myPublicLat').value = e.latlng.lat;
+            document.getElementById('myPublicLng').value = e.latlng.lng;
+            const status = document.getElementById('myPublicLocationStatus');
+            status.textContent = '📍 Location set (' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) + ')';
+            status.style.display = '';
+        });
+    }, 100);
+}
+
+function initPublicTheirPicker() {
+    if (publicTheirPickerMap) return;
+    setTimeout(() => {
+        publicTheirPickerMap = L.map('publicTheirPickerMap').setView([54, -2], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(publicTheirPickerMap);
+        publicTheirPickerMap.on('click', function(e) {
+            if (publicTheirPickerMarker) publicTheirPickerMarker.remove();
+            publicTheirPickerMarker = L.marker(e.latlng).addTo(publicTheirPickerMap);
+            document.getElementById('theirPublicLat').value = e.latlng.lat;
+            document.getElementById('theirPublicLng').value = e.latlng.lng;
+            const status = document.getElementById('theirLocationStatus');
+            status.textContent = '📍 Location set (' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) + ')';
+            status.style.display = '';
+        });
+    }, 100);
+}
+
+async function searchOtherStationPlace() {
+    const q = document.getElementById('otherStationSearch').value.trim();
+    if (!q) return;
+    try {
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1');
+        const results = await r.json();
+        if (!results.length) { alert('Place not found — try a different name or tap the map.'); return; }
+        const place = results[0];
+        const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+        document.getElementById('theirPublicLat').value = lat;
+        document.getElementById('theirPublicLng').value = lng;
+        const status = document.getElementById('theirLocationStatus');
+        status.textContent = '📍 ' + place.display_name.split(',').slice(0,2).join(',');
+        status.style.display = '';
+        if (!publicTheirPickerMap) { initPublicTheirPicker(); setTimeout(() => flyTheirPicker(lat, lng), 200); return; }
+        flyTheirPicker(lat, lng);
+    } catch(e) { alert('Search failed — check your connection.'); }
+}
+
+function flyTheirPicker(lat, lng) {
+    publicTheirPickerMap.setView([lat, lng], 10);
+    if (publicTheirPickerMarker) publicTheirPickerMarker.remove();
+    publicTheirPickerMarker = L.marker([lat, lng]).addTo(publicTheirPickerMap);
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Scenarios</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <h2>Scenario Engine</h2>
+    <p class="form-hint">Select the situation closest to what is happening. The app will guide you through it step by step.</p>
+    <div id="scenarioGrid" class="scenario-grid"><p class="empty">Loading scenarios...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+function init() {
+    renderNav('scenarios');
+    loadJSON('data/scenarios.json').then(data => {
+        const scenarios = Array.isArray(data) ? data : Object.values(data);
+        document.getElementById('scenarioGrid').innerHTML = scenarios.map(s => `
+            <a href="scenario-run.html?id=${encodeURIComponent(s.id)}" class="scenario-card">
+                <span class="scenario-icon">${escHtml(s.icon || '!')}</span>
+                <span class="scenario-title">${escHtml(s.title || s.name || '')}</span>
+                <span class="scenario-desc">${escHtml(s.description || '')}</span>
+            </a>`).join('');
+    }).catch(() => {
+        document.getElementById('scenarioGrid').innerHTML = '<p class="empty">Could not load scenarios.</p>';
+    });
+}
+init();
+</script>
+</body>
+</html>
+

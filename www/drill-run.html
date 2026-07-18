@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Run Drill</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .drill-timer { text-align: center; padding: 20px 0 10px; }
+        .timer-display { font-size: 56px; font-weight: bold; font-family: monospace; color: #6dbf5a; line-height: 1; }
+        .timer-display.amber { color: #d4a017; }
+        .timer-display.red { color: #c0392b; }
+        .timer-target { font-size: 12px; color: #4a5e48; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; }
+        .timer-controls { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+        .btn-timer { padding: 10px 24px; border-radius: 5px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: inherit; border: none; }
+        .btn-start { background: #3a5c2e; color: #d4d9d4; }
+        .btn-start:hover { background: #6dbf5a; color: #0f1210; }
+        .btn-pause { background: #2e1a0a; color: #d4a017; border: 1px solid #d4a017 !important; }
+        .btn-pause:hover { background: #3e2510; }
+        .btn-finish { background: #1a2018; color: #7a8f78; border: 1px solid #2e3d2c !important; }
+        .btn-finish:hover { border-color: #6dbf5a !important; color: #6dbf5a; }
+        .drill-progress-bar { background: #1a2018; border-radius: 4px; height: 6px; margin: 16px 0 20px; overflow: hidden; }
+        .drill-progress-fill { height: 100%; background: #3a5c2e; border-radius: 4px; transition: width .3s; }
+        .drill-steps { display: flex; flex-direction: column; gap: 8px; }
+        .drill-step { display: flex; align-items: flex-start; gap: 12px; background: #1a2018; border: 1px solid #2e3d2c; border-radius: 6px; padding: 14px 16px; cursor: pointer; transition: border-color .15s; text-align: left; width: 100%; font-family: inherit; color: #d4d9d4; }
+        .drill-step:hover { border-color: #6dbf5a; }
+        .drill-step.done { border-color: #3a5c2e; background: #141c12; }
+        .drill-step.done .step-text { color: #7a8f78; text-decoration: line-through; }
+        .step-num { min-width: 26px; height: 26px; border-radius: 50%; border: 2px solid #3a5c2e; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6dbf5a; font-weight: bold; flex-shrink: 0; background: #0f1210; }
+        .drill-step.done .step-num { background: #3a5c2e; border-color: #6dbf5a; }
+        .step-text { font-size: 14px; line-height: 1.5; padding-top: 2px; }
+        .result-screen { max-width: 560px; }
+        .result-header { text-align: center; padding: 24px 0 20px; }
+        .result-rating { font-size: 32px; font-weight: bold; margin-bottom: 8px; }
+        .result-rating.ready { color: #6dbf5a; }
+        .result-rating.needs-work { color: #d4a017; }
+        .result-rating.failed { color: #c0392b; }
+        .result-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 20px 0; }
+        .result-stat { background: #1a2018; border: 1px solid #2e3d2c; border-radius: 6px; padding: 14px; text-align: center; }
+        .result-stat-num { display: block; font-size: 24px; font-weight: bold; color: #6dbf5a; }
+        .result-stat-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #7a8f78; margin-top: 4px; }
+        .result-notes { margin: 20px 0; }
+        .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+<main style="max-width:640px;">
+    <div style="margin-bottom:16px;"><a href="drills.html" style="color:#6dbf5a;font-size:13px;">&#8592; All Drills</a></div>
+    <div id="pageContent"><p class="empty">Loading...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+const params   = new URLSearchParams(location.search);
+const drillId  = params.get('id');
+const isCustom = params.get('custom') === '1';
+
+let _drill = null;
+let _steps = [];
+let _targetTime = 600;
+let _drillName = '';
+let _checked = new Set();
+let _timerSecs = 0;
+let _timerInterval = null;
+let _running = false;
+let _started = false;
+let _startTimestamp = null;
+
+function saveActiveDrill() {
+    localStorage.setItem('rpn_active_drill', JSON.stringify({
+        drillId:        drillId,
+        drillName:      _drillName,
+        isCustom:       isCustom,
+        steps:          _steps,
+        checked:        Array.from(_checked),
+        timerSecs:      _timerSecs,
+        startTimestamp: _running ? _startTimestamp : null,
+        targetTime:     _targetTime,
+        description:    _drill ? (_drill.description || '') : '',
+    }));
+}
+
+function clearActiveDrill() {
+    localStorage.removeItem('rpn_active_drill');
+}
+
+function resumeFromOverlay() {
+    try {
+        const d = JSON.parse(localStorage.getItem('rpn_active_drill') || 'null');
+        if (d && d.drillId === drillId) {
+            _checked = new Set(d.checked || []);
+            _timerSecs = d.timerSecs || 0;
+            if (d.startTimestamp) {
+                _startTimestamp = d.startTimestamp;
+                _timerSecs = Math.floor((Date.now() - _startTimestamp) / 1000);
+                _running = true;
+                _started = true;
+                _timerInterval = setInterval(tickTimer, 1000);
+            } else if (_timerSecs > 0) {
+                _started = true;
+            }
+        }
+    } catch(e) {}
+}
+
+function init() {
+    renderNav('drills');
+    loadJSON('data/drills.json').then(builtins => {
+        let drill = null;
+        if (isCustom) {
+            const data = loadDrillData();
+            drill = (data.custom || []).find(d => d.id === drillId);
+        } else {
+            drill = builtins.find(d => d.id === drillId);
+        }
+        if (!drill) { document.getElementById('pageContent').innerHTML = '<p class="empty">Drill not found. <a href="drills.html">Back</a></p>'; return; }
+        _drill = drill;
+        _steps = getDrillSteps(drill);
+        _targetTime = getDrillTargetTime(drill);
+        _drillName = getDrillName(drill);
+        if (params.get('fromoverlay') === '1') resumeFromOverlay();
+        renderDrill();
+    });
+}
+
+function renderDrill() {
+    const done = _checked.size;
+    const total = _steps.length;
+    const pct = total > 0 ? Math.round(done/total*100) : 0;
+
+    const stepsHtml = _steps.map((step, idx) => `
+        <button class="drill-step${_checked.has(idx)?' done':''}" onclick="toggleStep(${idx})">
+            <span class="step-num">${_checked.has(idx) ? 'âœ"' : idx+1}</span>
+            <span class="step-text">${escHtml(step)}</span>
+        </button>`).join('');
+
+    const timerClass = _timerSecs > _targetTime * 1.2 ? 'red' : _timerSecs > _targetTime ? 'amber' : '';
+
+    document.getElementById('pageContent').innerHTML = `
+        <h2 style="margin-bottom:4px;">${escHtml(_drillName)}</h2>
+        <p class="form-hint">${escHtml(_drill.description || '')}</p>
+
+        <div class="drill-timer">
+            <div class="timer-display ${timerClass}" id="timerDisplay">${formatDrillTime(_timerSecs)}</div>
+            <div class="timer-target">Target: ${formatDrillTime(_targetTime)} &nbsp;·&nbsp; <span style="color:#6dbf5a;">Green</span> = on target &nbsp;<span style="color:#d4a017;">Amber</span> = over time &nbsp;<span style="color:#c0392b;">Red</span> = 20% over</div>
+            <div class="timer-controls">
+                ${!_started
+                    ? `<button class="btn-timer btn-start" onclick="startTimer()">&#9654; Start Drill</button>`
+                    : _running
+                        ? `<button class="btn-timer btn-pause" onclick="pauseTimer()">&#9646;&#9646; Pause</button>`
+                        : `<button class="btn-timer btn-start" onclick="resumeTimer()">&#9654; Resume</button>`
+                }
+                ${_started ? `<button class="btn-timer btn-finish" onclick="finishDrill()">&#9632; Finish</button>` : ''}
+                ${_started ? `<button class="btn-timer" style="background:#1a2a1a;color:#6dbf5a;border:1px solid #3a5a2a;" onclick="minimiseDrill()" title="Minimise and keep drill running while you use other pages">&#8595; Minimise</button>` : ''}
+            </div>
+        </div>
+
+        <div class="drill-progress-bar">
+            <div class="drill-progress-fill" style="width:${pct}%" id="progressFill"></div>
+        </div>
+        <p style="font-size:12px;color:#7a8f78;margin-bottom:16px;text-align:center;">${done}/${total} steps complete</p>
+
+        <div class="drill-steps">${stepsHtml}</div>
+
+        ${done === total && total > 0 ? `<div style="margin-top:20px;text-align:center;"><button class="btn-primary" onclick="finishDrill()">&#10003; All Done — See Results</button></div>` : ''}
+    `;
+}
+
+function minimiseDrill() {
+    saveActiveDrill();
+    window.location.href = 'home.html';
+}
+
+function toggleStep(idx) {
+    if (!_started) { startTimer(); }
+    if (_checked.has(idx)) _checked.delete(idx); else _checked.add(idx);
+    saveActiveDrill();
+    updateStepDisplay(idx);
+    updateProgressDisplay();
+    if (_checked.size === _steps.length) { renderDrill(); }
+}
+
+function updateStepDisplay(idx) {
+    const btns = document.querySelectorAll('.drill-step');
+    if (btns[idx]) {
+        btns[idx].classList.toggle('done', _checked.has(idx));
+        const num = btns[idx].querySelector('.step-num');
+        if (num) num.textContent = _checked.has(idx) ? 'âœ"' : idx + 1;
+        const txt = btns[idx].querySelector('.step-text');
+        // no change needed, just class toggle
+    }
+}
+
+function updateProgressDisplay() {
+    const pct = _steps.length > 0 ? Math.round(_checked.size/_steps.length*100) : 0;
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = pct + '%';
+    const label = document.querySelector('.drill-steps + p, p[style*="text-align:center"]');
+}
+
+function startTimer() {
+    _started = true;
+    _running = true;
+    _startTimestamp = Date.now() - (_timerSecs * 1000);
+    _timerInterval = setInterval(tickTimer, 1000);
+    saveActiveDrill();
+    renderDrill();
+}
+
+function resumeTimer() {
+    _running = true;
+    _startTimestamp = Date.now() - (_timerSecs * 1000);
+    _timerInterval = setInterval(tickTimer, 1000);
+    saveActiveDrill();
+    renderDrill();
+}
+
+function pauseTimer() {
+    _running = false;
+    _timerSecs = Math.floor((Date.now() - _startTimestamp) / 1000);
+    clearInterval(_timerInterval);
+    saveActiveDrill();
+    renderDrill();
+}
+
+function tickTimer() {
+    _timerSecs = Math.floor((Date.now() - _startTimestamp) / 1000);
+    const el = document.getElementById('timerDisplay');
+    if (el) {
+        el.textContent = formatDrillTime(_timerSecs);
+        el.className = 'timer-display' + (_timerSecs > _targetTime * 1.2 ? ' red' : _timerSecs > _targetTime ? ' amber' : '');
+    }
+}
+
+function finishDrill() {
+    clearInterval(_timerInterval);
+    _running = false;
+
+    const done = _checked.size;
+    const total = _steps.length;
+    const pct = total > 0 ? done / total : 0;
+    const overTime = _timerSecs > _targetTime;
+
+    let rating;
+    if (pct === 1 && !overTime) rating = 'ready';
+    else if (pct >= 0.7) rating = 'needs-work';
+    else rating = 'failed';
+
+    const missed = _steps.filter((_, idx) => !_checked.has(idx));
+    const last = getLastDrillRun(drillId);
+
+    const ratingLabel = { ready: 'âœ" READY', 'needs-work': '~ NEEDS WORK', failed: 'âœ• FAILED' }[rating];
+
+    document.getElementById('pageContent').innerHTML = `
+        <div class="result-screen">
+            <div class="result-header">
+                <div class="result-rating ${rating}">${ratingLabel}</div>
+                <div style="font-size:15px;color:#7a8f78;">${escHtml(_drillName)}</div>
+            </div>
+
+            <p style="font-size:11px;color:#4a5e48;text-align:center;margin-bottom:12px;">&#10003; Ready = all steps done within target time &nbsp;·&nbsp; ~ Needs Work = 70%+ steps done &nbsp;·&nbsp; &#10005; Failed = under 70%</p>
+
+            <div class="result-stats">
+                <div class="result-stat">
+                    <span class="result-stat-num">${formatDrillTime(_timerSecs)}</span>
+                    <span class="result-stat-label">Time Taken</span>
+                </div>
+                <div class="result-stat">
+                    <span class="result-stat-num">${done}/${total}</span>
+                    <span class="result-stat-label">Steps Done</span>
+                </div>
+                <div class="result-stat">
+                    <span class="result-stat-num" style="color:${overTime?'#c0392b':'#6dbf5a'}">${formatDrillTime(_targetTime)}</span>
+                    <span class="result-stat-label">Target Time</span>
+                </div>
+            </div>
+
+            ${last ? `<p style="font-size:13px;color:#7a8f78;margin-bottom:16px;">Previous: ${formatDrillTime(last.time_taken)} &mdash; ${last.rating.replace('-',' ')}</p>` : ''}
+
+            ${missed.length > 0 ? `
+                <div style="background:#2e1a0a;border:1px solid #d4a017;border-radius:6px;padding:14px;margin-bottom:16px;">
+                    <p style="font-size:12px;color:#d4a017;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Missed Steps</p>
+                    <ul style="padding-left:16px;font-size:13px;color:#c0c9bf;line-height:2;">
+                        ${missed.map(s => `<li>${escHtml(s)}</li>`).join('')}
+                    </ul>
+                </div>` : `<div style="background:#141c12;border:1px solid #3a5c2e;border-radius:6px;padding:14px;margin-bottom:16px;color:#6dbf5a;font-size:13px;">&#10003; All steps completed.</div>`}
+
+            <div class="result-notes">
+                <label class="input-label" style="flex:1;font-size:12px;">
+                    Notes (optional — what went well, what to improve)
+                    <textarea id="resultNotes" placeholder="e.g. Couldn't find the torch — move it to the hallway. Power bank was flat." style="margin-top:6px;width:100%;min-height:80px;"></textarea>
+                </label>
+            </div>
+
+            <div class="result-actions">
+                <button class="btn-primary" onclick="saveResult('${rating}')">Save to Log</button>
+                <a href="drill-run.html?id=${encodeURIComponent(drillId)}&custom=${isCustom?1:0}" class="btn-cancel" style="text-decoration:none;">Run Again</a>
+                <a href="drills.html" class="btn-cancel" style="text-decoration:none;">All Drills</a>
+            </div>
+        </div>`;
+}
+
+function saveResult(rating) {
+    clearActiveDrill();
+    const notes = document.getElementById('resultNotes')?.value.trim() || '';
+    const entry = {
+        drill_id: drillId,
+        drill_name: _drillName,
+        date: new Date().toLocaleDateString('en-GB'),
+        time_taken: _timerSecs,
+        steps_completed: _checked.size,
+        steps_total: _steps.length,
+        rating,
+        notes,
+    };
+    logDrillResult(entry);
+
+    document.querySelector('.result-actions').innerHTML = `
+        <span style="color:#6dbf5a;font-size:13px;">&#10003; Saved to drill log.</span>
+        <a href="drills.html" class="btn-primary" style="text-decoration:none;margin-top:0;">All Drills</a>`;
+}
+
+init();
+</script>
+</body>
+</html>
+

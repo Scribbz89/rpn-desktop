@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Scenario</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main class="scenario-runner">
+    <div style="margin-bottom:16px;">
+        <a href="scenarios.html" style="color:#6dbf5a;font-size:13px;">&#8592; All Scenarios</a>
+    </div>
+    <div id="pageContent"><p class="empty">Loading...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+const params  = new URLSearchParams(location.search);
+const scenId  = params.get('id');
+let nodeId    = params.get('node') || 'start';
+let _scenario = null;
+let _nodes    = {};
+
+function init() {
+    renderNav('scenarios');
+    loadJSON('data/scenarios.json').then(data => {
+        const scenarios = Array.isArray(data) ? data : Object.values(data);
+        _scenario = scenarios.find(s => s.id === scenId);
+        if (!_scenario) { document.getElementById('pageContent').innerHTML = '<p class="empty">Scenario not found. <a href="scenarios.html">Back</a></p>'; return; }
+        // nodes is already an object keyed by id
+        _nodes = _scenario.nodes || {};
+        // use scenario's start node if no node param given
+        if (!params.get('node')) nodeId = _scenario.start || Object.keys(_nodes)[0] || 'start';
+        renderNode(nodeId);
+    }).catch(() => {
+        document.getElementById('pageContent').innerHTML = '<p class="empty">Could not load scenario.</p>';
+    });
+}
+
+function renderNode(id) {
+    nodeId = id;
+    const node = _nodes[id];
+    if (!node) { document.getElementById('pageContent').innerHTML = `<p class="empty">Step not found (${escHtml(id)}). <a href="scenarios.html">Back</a></p>`; return; }
+
+    // Update URL without reload
+    history.replaceState(null, '', `?id=${encodeURIComponent(scenId)}&node=${encodeURIComponent(id)}`);
+
+    const el = document.getElementById('pageContent');
+
+    // Support both formats: {type:'question'} and {question:'...', answers:[]}
+    const isAction  = node.action === true || node.type === 'action';
+    const isSummary = node.summary === true || node.type === 'summary';
+    const isQuestion = !isAction && !isSummary && (node.question || node.type === 'question' || node.answers);
+
+    if (isQuestion) {
+        const questionText = node.question || node.text || '';
+        const answers = node.answers || node.options || [];
+        const opts = answers.map(opt =>
+            `<button class="answer-btn" onclick="renderNode('${escHtml(opt.next)}')">${escHtml(opt.text)}</button>`
+        ).join('');
+        el.innerHTML = `
+            <div class="scenario-question">
+                <div class="question-text">${escHtml(questionText)}</div>
+                ${node.info ? `<div class="question-info">${escHtml(node.info)}</div>` : ''}
+                <div class="answer-options">${opts}</div>
+            </div>`;
+
+    } else if (isAction) {
+        const instrText = node.instruction || node.text || '';
+        el.innerHTML = `
+            <div class="scenario-action">
+                <span class="action-badge">ACTION</span>
+                <div class="action-instruction">${formatText(instrText)}</div>
+                ${node.next ? `<button class="btn-action-done" onclick="renderNode('${escHtml(node.next)}')">Done &mdash; Next Step &#8594;</button>` : `<div style="margin-top:20px;"><a href="scenarios.html" class="btn-restart">All Scenarios</a></div>`}
+            </div>`;
+
+    } else if (isSummary) {
+        const points = (node.points || []).map(p => `<li>${escHtml(p)}</li>`).join('');
+        const links = (node.checklists || []).map(cl =>
+            `<a href="checklist-detail.html?id=${encodeURIComponent(cl.id)}" class="header-link">${escHtml(cl.name || cl.id)}</a>`
+        ).join('');
+        el.innerHTML = `
+            <div class="scenario-summary">
+                <h2>${escHtml(node.title || 'Summary')}</h2>
+                ${node.intro ? `<p class="summary-intro">${escHtml(node.intro)}</p>` : ''}
+                <ul class="summary-points">${points}</ul>
+                ${links ? `<div class="related-checklists"><h3>Relevant Checklists</h3><div class="checklist-links">${links}</div></div>` : ''}
+                <div style="margin-top:24px;">
+                    <a href="scenario-run.html?id=${encodeURIComponent(scenId)}" class="btn-restart">&#8635; Restart</a>
+                    <a href="scenarios.html" class="btn-cancel" style="text-decoration:none;">All Scenarios</a>
+                </div>
+            </div>`;
+
+    } else {
+        // Fallback
+        const fallbackText = node.instruction || node.text || node.question || '';
+        el.innerHTML = `
+            <div class="scenario-action">
+                <div class="action-instruction">${formatText(fallbackText)}</div>
+                ${node.next ? `<button class="btn-action-done" onclick="renderNode('${escHtml(node.next)}')">Next &#8594;</button>` : `<div style="margin-top:20px;"><a href="scenarios.html" class="btn-restart">All Scenarios</a></div>`}
+            </div>`;
+    }
+}
+
+function formatText(text) {
+    // Convert newlines to <br>, keep text safe
+    return escHtml(text).replace(/\n/g, '<br>');
+}
+
+init();
+</script>
+</body>
+</html>
+

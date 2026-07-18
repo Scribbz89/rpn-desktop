@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Group Invites</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="community-groups.html" style="color:#6dbf5a;font-size:13px;">&#8592; Groups</a></div>
+    <h2>Group Invites</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Pending invites to join groups.</p>
+
+    <div id="invitesList" class="add-form" style="max-width:520px;"></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+async function init() {
+    renderNav('more');
+    registerPushNotifications();
+    if (!communityToken()) { window.location.href = 'community-auth.html'; return; }
+    loadInvites();
+}
+
+async function loadInvites() {
+    const el = document.getElementById('invitesList');
+    try {
+        const invites = await communityGetInvites();
+        if (!invites.length) {
+            el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No pending invites.</p>';
+            return;
+        }
+        el.innerHTML = invites.map(inv => `
+            <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+                <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${escHtml(inv.group_name)}</div>
+                <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Invited by ${escHtml(inv.invited_by)} · ${new Date(inv.invited_at).toLocaleDateString()}</div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="respond(${inv.id}, true)" style="background:var(--accent);border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;">Accept</button>
+                    <button onclick="respond(${inv.id}, false)" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 20px;border-radius:4px;cursor:pointer;">Decline</button>
+                </div>
+            </div>`).join('');
+    } catch(e) {
+        el.innerHTML = '<p style="color:var(--red);">Could not load invites.</p>';
+    }
+}
+
+async function respond(inviteId, accept) {
+    try {
+        if (accept) await communityAcceptInvite(inviteId);
+        else await communityDeclineInvite(inviteId);
+        loadInvites();
+    } catch(e) { alert(e.message); }
+}
+
+init();
+</script>
+</body>
+</html>
+

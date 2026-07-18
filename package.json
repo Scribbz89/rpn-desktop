@@ -1,0 +1,48 @@
+{
+  "name": "rpn-field-brain",
+  "version": "1.0.0",
+  "description": "RPN Field Brain — offline emergency preparedness app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "sync": "robocopy ..\\RPN-MOBILE\\www www /E /IS /IT > nul & exit 0",
+    "build:win": "npm run sync && electron-builder --win",
+    "build:linux": "npm run sync && electron-builder --linux",
+    "build:all": "npm run sync && electron-builder --win --linux"
+  },
+  "build": {
+    "appId": "com.rpn.fieldbrain",
+    "productName": "RPN Field Brain",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "www/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "www/img/rpn-logo.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "www/img/rpn-logo.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "www/img/rpn-logo.png",
+      "installerHeaderIcon": "www/img/rpn-logo.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

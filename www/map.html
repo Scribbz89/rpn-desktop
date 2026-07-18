@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Map</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/MarkerCluster.css">
+    <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+    <style>
+        body { padding-bottom: 0; }
+        .map-page-wrap { display: flex; flex-direction: column; height: calc(100vh - 110px); }
+        #map { flex: 1; }
+        .leaflet-popup-content-wrapper {
+            background: #1a2a1a !important;
+            border: 1px solid #3a5a3a !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
+            color: #d4d9d4 !important;
+        }
+        .leaflet-popup-content { color: #d4d9d4 !important; font-size: 13px !important; line-height: 1.6 !important; margin: 10px 14px !important; }
+        .leaflet-popup-tip { background: #1a2a1a !important; }
+        .leaflet-popup-close-button { color: #6dbf5a !important; font-size: 18px !important; }
+        @keyframes dashMove {
+            to { stroke-dashoffset: -20; }
+        }
+        .live-contact-line {
+            animation: dashMove 0.8s linear infinite;
+        }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="map-page-wrap">
+<div style="position:relative;flex:1;">
+    <div id="map"></div>
+
+    <!-- Left controls -->
+    <div class="map-controls">
+        <a href="home.html" class="map-btn" style="text-decoration:none;text-align:center;">&#8962; Home</a>
+        <button class="map-btn" id="addPinBtn" onclick="toggleAddMode()">+ Pin</button>
+        <button class="map-btn" id="addRepBtn" onclick="toggleAddRepeaterMode()" style="display:none;">+ Rep</button>
+        <button class="map-btn" onclick="togglePanel('listPanel')">&#9776; List</button>
+        <button class="map-btn" onclick="togglePanel('helpPanel')">? Help</button>
+        <button class="map-btn" id="saveOfflineBtn" onclick="saveOffline()">&#8659; Offline</button>
+        <button class="map-btn" onclick="togglePanel('filterPanel')">&#9776; Filters</button>
+    </div>
+
+    <!-- Search box -->
+    <div style="position:absolute;top:10px;right:10px;z-index:1000;width:220px;">
+        <input type="text" id="mapSearch" placeholder="🔍 Search map..." oninput="onMapSearch()" style="margin:0;padding:9px 12px;font-size:13px;border-radius:8px;width:100%;box-sizing:border-box;" autocomplete="off">
+        <div id="mapSearchResults" style="display:none;background:#131f13;border:1px solid #3a5a3a;border-radius:8px;margin-top:4px;max-height:300px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.6);"></div>
+    </div>
+
+    <!-- Filter panel -->
+    <div class="map-panel" id="filterPanel" style="display:none;top:10px;left:60px;bottom:auto;max-width:220px;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin:0;font-size:14px;">Map Filters</h3>
+            <button style="background:none;border:none;color:#7a8f78;cursor:pointer;font-size:16px;" onclick="togglePanel('filterPanel')">✕</button>
+        </div>
+        <div style="font-size:11px;color:#7a8f78;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">My Pins</div>
+        <button class="layer-btn on" id="layer-rally"               onclick="toggleLayer('rally')">&#9679; Rally Points</button>
+        <button class="layer-btn on" id="layer-cache"               onclick="toggleLayer('cache')">&#9679; Caches</button>
+        <button class="layer-btn on" id="layer-hazard"              onclick="toggleLayer('hazard')">&#9679; Hazards</button>
+        <button class="layer-btn on" id="layer-general"             onclick="toggleLayer('general')">&#9679; General</button>
+        <div style="font-size:11px;color:#7a8f78;margin:10px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Community Pins</div>
+        <button class="layer-btn on" id="layer-on_air"              onclick="toggleLayer('on_air')">&#9679; On Air</button>
+        <button class="layer-btn on" id="layer-meshcore_repeater"   onclick="toggleLayer('meshcore_repeater')">&#9679; MeshCore Repeater</button>
+        <button class="layer-btn on" id="layer-meshcore_companion"  onclick="toggleLayer('meshcore_companion')">&#9679; MeshCore Companion</button>
+        <button class="layer-btn on" id="layer-community_rally"     onclick="toggleLayer('community_rally')">&#9679; Rally Points</button>
+        <button class="layer-btn on" id="layer-community_cache"     onclick="toggleLayer('community_cache')">&#9679; Caches</button>
+        <button class="layer-btn on" id="layer-community_hazard"    onclick="toggleLayer('community_hazard')">&#9679; Hazards</button>
+        <button class="layer-btn on" id="layer-community_general"   onclick="toggleLayer('community_general')">&#9679; General</button>
+        <div style="font-size:11px;color:#7a8f78;margin:10px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">People</div>
+        <button class="layer-btn on" id="layer-members"             onclick="toggleLayer('members')">&#9679; Members</button>
+        <button class="layer-btn on" id="layer-live_contacts"       onclick="toggleLayer('live_contacts')">&#9679; Live Contacts</button>
+        <button class="layer-btn on" id="layer-public_contacts"     onclick="toggleLayer('public_contacts')">&#9679; Public Contacts</button>
+        <div style="font-size:11px;color:#7a8f78;margin:10px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Network</div>
+        <button class="layer-btn" id="layer-meshcore_map"           onclick="toggleLayer('meshcore_map')">&#9679; MeshCore Network</button>
+        <button class="layer-btn on" id="layer-rpn_repeaters"       onclick="toggleLayer('rpn_repeaters')">&#9679; RPN Repeaters</button>
+    </div>
+
+    <!-- Add pin panel -->
+    <div class="map-panel" id="addPanel" style="display:none;">
+        <h3>Drop Pin</h3>
+        <input type="text" id="pinName" placeholder="Name *" required>
+        <select id="pinType" onchange="onPinTypeChange()">
+            <option value="general">General</option>
+            <option value="rally">Rally Point</option>
+            <option value="cache">Cache / Supply</option>
+            <option value="hazard">Hazard</option>
+            <optgroup label="─── Live Pins ───"></optgroup>
+            <option value="on_air">📡 On Air</option>
+            <option value="meshcore_repeater">🗼 MeshCore Repeater</option>
+            <option value="meshcore_companion">📟 MeshCore Companion</option>
+        </select>
+        <!-- Channel field — shown for On Air / MeshCore types -->
+        <input type="text" id="pinChannel" placeholder="Channel / Frequency (e.g. PMR 8, 446.09375)" style="display:none;margin-top:4px;">
+        <!-- Duration field — shown for On Air / MeshCore Companion (temporary pins) -->
+        <select id="pinDuration" style="display:none;margin-top:4px;">
+            <option value="1">On air for 1 hour</option>
+            <option value="2">On air for 2 hours</option>
+            <option value="4">On air for 4 hours</option>
+            <option value="8">On air for 8 hours</option>
+            <option value="24">On air until tomorrow</option>
+        </select>
+        <input type="text" id="pinLat" placeholder="Latitude" readonly>
+        <input type="text" id="pinLng" placeholder="Longitude" readonly>
+        <textarea id="pinNotes" placeholder="Notes (optional)"></textarea>
+        <select id="pinVisibility" onchange="onVisibilityChange()">
+            <option value="private">🔒 Private — only me</option>
+            <option value="group">👥 Group — specific group</option>
+            <option value="public">🌐 Public — all RPN members</option>
+        </select>
+        <select id="pinGroup" style="display:none;margin-top:4px;">
+            <option value="">Loading groups...</option>
+        </select>
+        <div style="font-size:11px;color:#7a8f78;margin-top:2px;">Group and Public pins sync to the RPN Community server. Requires community sign-in.</div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn-primary" style="flex:1;margin-top:0;padding:8px;" onclick="savePin()">Save</button>
+            <button class="btn-cancel" style="margin-top:0;padding:8px;" onclick="cancelAdd()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Edit pin panel -->
+    <div class="map-panel" id="editPanel" style="display:none;">
+        <h3>Edit Pin</h3>
+        <input type="text" id="editName" placeholder="Name *" required>
+        <select id="editType" onchange="onEditTypeChange()">
+            <option value="general">General</option>
+            <option value="rally">Rally Point</option>
+            <option value="cache">Cache / Supply</option>
+            <option value="hazard">Hazard</option>
+            <optgroup label="─── Live Pins ───"></optgroup>
+            <option value="on_air">📡 On Air</option>
+            <option value="meshcore_repeater">🗼 MeshCore Repeater</option>
+            <option value="meshcore_companion">📟 MeshCore Companion</option>
+        </select>
+        <input type="text" id="editChannel" placeholder="Channel / Frequency (e.g. PMR 8, 446.09375)" style="display:none;margin-top:4px;">
+        <textarea id="editNotes" placeholder="Notes (optional)"></textarea>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn-primary" style="flex:1;margin-top:0;padding:8px;" onclick="saveEdit()">Save</button>
+            <button class="btn-cancel" style="margin-top:0;padding:8px;" onclick="closeEditPanel()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Pin list panel -->
+    <div class="map-panel" id="listPanel" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin:0;">Pins</h3>
+            <button style="background:none;border:none;color:#7a8f78;cursor:pointer;font-size:16px;" onclick="togglePanel('listPanel')">✕</button>
+        </div>
+        <div id="pinList" class="pin-list"></div>
+    </div>
+
+    <!-- Help panel -->
+    <div class="map-panel" id="helpPanel" style="display:none;max-width:260px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin:0;">Map Help</h3>
+            <button style="background:none;border:none;color:#7a8f78;cursor:pointer;font-size:16px;" onclick="togglePanel('helpPanel')">✕</button>
+        </div>
+        <div style="font-size:12px;color:#c0c9bf;line-height:1.8;">
+            <p><strong style="color:#6dbf5a;">+ Pin</strong> — tap the button then tap the map to drop a pin. Choose a type: Rally Point (meeting place), Cache (stored supplies), Hazard (danger to avoid), or General note.</p><br>
+            <p><strong style="color:#6dbf5a;">&#8659; Offline</strong> — saves the current map view to your device so it works without internet. Navigate to each area you need before saving.</p><br>
+            <p><strong style="color:#6dbf5a;">Filters</strong> — show/hide different pin types including community pins from other members.</p><br>
+            <p>Your pins are stored locally and always visible. Community pins require a logged-in RPN account and an internet connection.</p>
+            <div id="offlineStatus" class="offline-status"></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Add Repeater Modal -->
+<div id="addRepeaterModal" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:9000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#131f13;border:1px solid #3a5a3a;border-radius:12px;padding:20px;width:100%;max-width:420px;">
+        <h3 style="margin:0 0 14px;color:#d4d9d4;">Add RPN Repeater</h3>
+        <input type="text" id="repName" placeholder="Name *" style="margin-bottom:8px;">
+        <select id="repType" style="margin-bottom:8px;">
+            <option value="radio">Radio Repeater</option>
+            <option value="meshcore">MeshCore Repeater</option>
+            <option value="dmr">DMR Repeater</option>
+            <option value="aprs">APRS</option>
+            <option value="other">Other</option>
+        </select>
+        <input type="text" id="repFrequency" placeholder="Frequency / Channel (e.g. 145.600 MHz)" style="margin-bottom:8px;">
+        <textarea id="repNotes" placeholder="Notes (optional)" style="margin-bottom:8px;height:60px;"></textarea>
+        <input type="hidden" id="repLat">
+        <input type="hidden" id="repLng">
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button id="saveRepBtn" onclick="saveRepeater()" style="flex:1;margin:0;padding:10px;background:#6dbf5a;color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;">Save Repeater</button>
+            <button onclick="document.getElementById('addRepeaterModal').style.display='none'" style="margin:0;padding:10px 16px;background:#1a2a1a;border:1px solid #2a4a2a;color:#7a8f78;border-radius:8px;cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Member profile bottom sheet -->
+<div id="memberSheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#131f13;border-top:1px solid #3a5a3a;border-radius:16px 16px 0 0;padding:20px;z-index:5000;max-height:70vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,0.7);">
+    <div style="width:40px;height:4px;background:#2a4a2a;border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#6dbf5a;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#000;flex-shrink:0;" id="sheetAvatar">?</div>
+        <div>
+            <div id="sheetName" style="font-size:17px;font-weight:700;color:#d4d9d4;"></div>
+            <div id="sheetCallsign" style="font-size:13px;color:#6dbf5a;"></div>
+        </div>
+    </div>
+    <div id="sheetDetails" style="font-size:13px;color:#7a8f78;line-height:2;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;">
+        <button id="sheetAddContact" style="flex:1;margin:0;padding:12px;background:#6dbf5a;color:#000;font-weight:700;border:none;border-radius:8px;font-size:14px;cursor:pointer;" onclick="sheetAddContact()">Add as Contact</button>
+        <button style="margin:0;padding:12px 18px;background:#1a2a1a;border:1px solid #2a4a2a;color:#7a8f78;border-radius:8px;font-size:14px;cursor:pointer;" onclick="document.getElementById('memberSheet').style.display='none'">Close</button>
+    </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/leaflet.js"></script>
+<script src="js/leaflet.markercluster.js"></script>
+<script src="js/tilecache.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+let map, addMode = false;
+let pendingLatLng = null;
+let markers = {};
+let editingLocalId = null;
+let editingServerId = null;
+
+// Global data stores for search
+let _allMembers = [];
+let _allCommunityPins = [];
+let _allMeshcoreNodes = [];
+let _allRpnRepeaters = [];
+let _myContacts = []; // loaded with community pins — contact_id list
+let _mySentRequests = []; // pending outgoing contact requests
+let _searchTimeout = null;
+let _memberMarkers = {}; // memberId -> marker
+
+// One LayerGroup per filter category — all markers go into a group, never directly to map
+const layers = {};
+const LAYER_KEYS = ['rally','cache','hazard','general','on_air','meshcore_repeater','meshcore_companion','community_rally','community_cache','community_hazard','community_general','members','live_contacts','public_contacts','meshcore_map','rpn_repeaters'];
+const layerVisible = {};
+LAYER_KEYS.forEach(k => { layerVisible[k] = true; });
+// MeshCore starts off — loaded on first toggle to avoid startup crash
+layerVisible['meshcore_map'] = false;
+let _meshcoreLoaded = false;
+
+// Map community pin type -> layer key
+function communityPinLayer(type) {
+    if (type === 'on_air')              return 'on_air';
+    if (type === 'meshcore_repeater')   return 'meshcore_repeater';
+    if (type === 'meshcore_companion')  return 'meshcore_companion';
+    if (type === 'rally')               return 'community_rally';
+    if (type === 'cache')               return 'community_cache';
+    if (type === 'hazard')              return 'community_hazard';
+    return 'community_general';
+}
+
+const REGION_COORDS = {
+    'cornwall':[50.4,-5.0],'devon':[50.7,-3.9],'dorset':[50.7,-2.4],'somerset':[51.1,-3.0],
+    'wiltshire':[51.3,-1.9],'hampshire':[51.0,-1.3],'sussex':[50.9,0.0],'kent':[51.2,0.7],
+    'surrey':[51.3,-0.4],'essex':[51.7,0.5],'suffolk':[52.1,1.0],'norfolk':[52.7,1.0],
+    'london':[51.5,-0.1],'hertfordshire':[51.8,-0.2],'berkshire':[51.4,-1.0],
+    'oxfordshire':[51.8,-1.3],'gloucestershire':[51.9,-2.1],'worcestershire':[52.2,-2.2],
+    'warwickshire':[52.3,-1.6],'northamptonshire':[52.3,-0.9],'cambridgeshire':[52.3,0.1],
+    'bedfordshire':[52.1,-0.5],'buckinghamshire':[51.8,-0.8],'leicestershire':[52.6,-1.1],
+    'nottinghamshire':[53.0,-1.0],'derbyshire':[53.1,-1.5],'staffordshire':[52.8,-2.0],
+    'shropshire':[52.7,-2.7],'cheshire':[53.2,-2.5],'lincolnshire':[53.1,-0.3],
+    'yorkshire':[54.0,-1.5],'west yorkshire':[53.8,-1.7],'south yorkshire':[53.5,-1.4],
+    'north yorkshire':[54.1,-1.5],'east yorkshire':[53.9,-0.5],
+    'lancashire':[53.8,-2.6],'cumbria':[54.6,-2.9],'durham':[54.8,-1.7],
+    'northumberland':[55.2,-1.9],'tyne and wear':[54.9,-1.5],
+    'wales':[52.1,-3.5],'scotland':[56.5,-4.0],'ireland':[53.4,-8.0],'northern ireland':[54.6,-6.7],
+    'puglia':[40.5,17.0],'italy':[41.9,12.5],'sicily':[37.6,14.0],
+    'france':[46.2,2.2],'germany':[51.2,10.5],'spain':[40.4,-3.7],'portugal':[39.4,-8.2],
+    'netherlands':[52.4,4.9],'belgium':[50.5,4.5],'sweden':[62.0,15.0],'norway':[60.5,8.5],
+    'denmark':[56.3,9.5],'finland':[64.0,26.0],'poland':[51.9,19.1],'austria':[47.5,14.6],
+    'switzerland':[46.8,8.2],'czech republic':[49.8,15.5],'hungary':[47.2,19.5],
+    'greece':[38.9,21.8],'croatia':[45.1,15.2],
+};
+
+function regionToLatLng(region, country) {
+    const key = (region || country || '').toLowerCase().trim();
+    if (REGION_COORDS[key]) return REGION_COORDS[key];
+    const ckey = (country || '').toLowerCase().trim();
+    if (REGION_COORDS[ckey]) return REGION_COORDS[ckey];
+    for (const k of Object.keys(REGION_COORDS)) {
+        if (key.includes(k) || k.includes(key)) return REGION_COORDS[k];
+    }
+    return null;
+}
+
+const PIN_COLOURS = {
+    rally:              '#6dbf5a',
+    cache:              '#d4a017',
+    hazard:             '#c0392b',
+    general:            '#7a8f78',
+    on_air:             '#ff6b35',
+    meshcore_repeater:  '#7b68ee',
+    meshcore_companion: '#00bcd4',
+};
+
+const MESHCORE_TYPE_COLOURS = {
+    repeater: '#9b59b6',
+    client:   '#5dade2',
+    room:     '#1abc9c',
+    chatroom: '#1abc9c',
+};
+const REPEATER_TYPE_COLOURS = {
+    radio:    '#e67e22',
+    meshcore: '#9b59b6',
+    dmr:      '#e74c3c',
+    aprs:     '#27ae60',
+    other:    '#95a5a6',
+};
+
+let _sheetMemberId = null;
+
+function showMemberSheet(member, exactLoc) {
+    _sheetMemberId = member.id;
+    const cs = [member.rpn_callsign, member.callsign].filter(Boolean).join(' / ') || 'No callsign';
+    document.getElementById('sheetAvatar').textContent = (member.name || '?')[0].toUpperCase();
+    document.getElementById('sheetName').textContent = member.name || '';
+    document.getElementById('sheetCallsign').textContent = cs;
+    const rows = [
+        member.region ? `📍 ${member.region}${member.country ? ', ' + member.country : ''}` : null,
+        member.radios ? `📻 ${member.radios}` : null,
+        member.frequencies ? `〰 ${member.frequencies}` : null,
+        member.active_hours ? `🕐 ${member.active_hours}` : null,
+        !exactLoc ? `<span style="color:#4a5e48;font-size:12px;">(approximate location — region only)</span>` : null,
+    ].filter(Boolean);
+    document.getElementById('sheetDetails').innerHTML = rows.join('<br>') || '<span style="color:var(--text-muted)">No profile details.</span>';
+    // Show correct contact status button
+    const btn = document.getElementById('sheetAddContact');
+    if (!communityToken()) {
+        btn.style.display = 'none';
+    } else {
+        const isContact = _myContacts.some(c => c.contact_id === member.id);
+        const isPending = _mySentRequests.some(r => r.to_id === member.id);
+        btn.style.display = '';
+        if (isContact) {
+            btn.textContent = '✓ RPN Contact';
+            btn.style.background = 'none';
+            btn.style.border = '1px solid #6dbf5a';
+            btn.style.color = '#6dbf5a';
+            btn.disabled = true;
+        } else if (isPending) {
+            btn.textContent = '⏳ Request Pending';
+            btn.style.background = 'none';
+            btn.style.border = '1px solid #7a8f78';
+            btn.style.color = '#7a8f78';
+            btn.disabled = true;
+        } else {
+            btn.textContent = 'Add as Contact';
+            btn.style.background = '#6dbf5a';
+            btn.style.border = 'none';
+            btn.style.color = '#000';
+            btn.disabled = false;
+        }
+    }
+    document.getElementById('memberSheet').style.display = '';
+}
+
+async function sheetAddContact() {
+    if (!_sheetMemberId) return;
+    const btn = document.getElementById('sheetAddContact');
+    btn.textContent = 'Sending...'; btn.disabled = true;
+    try {
+        await communityAddContact(_sheetMemberId);
+        _mySentRequests.push({ to_id: _sheetMemberId });
+        btn.textContent = '⏳ Request Pending';
+        btn.style.background = 'none';
+        btn.style.border = '1px solid #7a8f78';
+        btn.style.color = '#7a8f78';
+    } catch(e) {
+        btn.textContent = 'Add as Contact';
+        btn.disabled = false;
+        alert(e.message);
+    }
+}
+
+// --- Map search ---
+
+function onMapSearch() {
+    clearTimeout(_searchTimeout);
+    const q = document.getElementById('mapSearch').value.trim().toLowerCase();
+    const res = document.getElementById('mapSearchResults');
+    if (q.length < 2) { res.style.display = 'none'; return; }
+    _searchTimeout = setTimeout(() => runMapSearch(q), 300);
+}
+
+async function runMapSearch(q) {
+    const res = document.getElementById('mapSearchResults');
+    res.style.display = '';
+    res.innerHTML = '<div style="padding:10px;font-size:12px;color:#7a8f78;">Searching...</div>';
+
+    const sections = [];
+
+    // Members
+    const memberHits = _allMembers.filter(m => {
+        const cs = (m.rpn_callsign || '') + ' ' + (m.callsign || '');
+        return m.name.toLowerCase().includes(q) || cs.toLowerCase().includes(q);
+    }).slice(0, 5);
+    if (memberHits.length) sections.push({ label: 'Members', colour: '#6dbf5a', items: memberHits.map(m => ({
+        text: m.name,
+        sub: m.rpn_callsign || m.callsign || '',
+        action: () => flyToMember(m),
+    }))});
+
+    // My pins
+    const localPins = (loadMap().markers || []).filter(p => p.name.toLowerCase().includes(q)).slice(0, 5);
+    if (localPins.length) sections.push({ label: 'My Pins', colour: '#d4a017', items: localPins.map(p => ({
+        text: p.name,
+        sub: p.type,
+        action: () => { map.flyTo([p.lat, p.lng], 14); if (markers[p.id]) markers[p.id].marker.openPopup(); },
+    }))});
+
+    // Community pins
+    const commPins = _allCommunityPins.filter(p => p.name.toLowerCase().includes(q)).slice(0, 5);
+    if (commPins.length) sections.push({ label: 'Community Pins', colour: '#ff6b35', items: commPins.map(p => ({
+        text: p.name,
+        sub: p.type,
+        action: () => map.flyTo([p.lat, p.lng], 14),
+    }))});
+
+    // MeshCore nodes
+    const mcHits = _allMeshcoreNodes.filter(n => n.name.toLowerCase().includes(q)).slice(0, 5);
+    if (mcHits.length) sections.push({ label: 'MeshCore Nodes', colour: '#9b59b6', items: mcHits.map(n => ({
+        text: n.name,
+        sub: n.type + (n.frequency ? ' · ' + n.frequency : ''),
+        action: () => map.flyTo([n.lat, n.lng], 14),
+    }))});
+
+    // RPN Repeaters
+    const repHits = _allRpnRepeaters.filter(r => r.name.toLowerCase().includes(q) || (r.frequency || '').toLowerCase().includes(q)).slice(0, 5);
+    if (repHits.length) sections.push({ label: 'RPN Repeaters', colour: '#e67e22', items: repHits.map(r => ({
+        text: r.name,
+        sub: r.type + (r.frequency ? ' · ' + r.frequency : ''),
+        action: () => map.flyTo([r.lat, r.lng], 14),
+    }))});
+
+    // Places (Nominatim geocoding)
+    try {
+        const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=3`, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RPN-FieldBrain/1.0' }
+        });
+        const places = await geo.json();
+        if (places.length) sections.push({ label: 'Places', colour: '#7a8f78', items: places.map(p => ({
+            text: p.display_name.split(',').slice(0,2).join(','),
+            sub: p.type,
+            action: () => map.flyTo([parseFloat(p.lat), parseFloat(p.lon)], 13),
+        }))});
+    } catch(e) {}
+
+    if (!sections.length) {
+        res.innerHTML = '<div style="padding:10px;font-size:12px;color:#7a8f78;">No results found.</div>';
+        return;
+    }
+
+    res.innerHTML = sections.map(sec => `
+        <div style="padding:6px 10px 2px;font-size:10px;font-weight:700;color:${sec.colour};text-transform:uppercase;letter-spacing:0.5px;">${sec.label}</div>
+        ${sec.items.map((item, i) => `
+            <div class="map-search-result" data-sec="${escHtml(sec.label)}" data-idx="${i}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #1a2a1a;">
+                <div style="font-size:13px;color:#d4d9d4;">${escHtml(item.text)}</div>
+                ${item.sub ? `<div style="font-size:11px;color:#7a8f78;">${escHtml(item.sub)}</div>` : ''}
+            </div>`).join('')}
+    `).join('');
+
+    // Attach click handlers
+    let idx = 0;
+    sections.forEach(sec => {
+        sec.items.forEach((item, i) => {
+            const el = res.querySelectorAll('.map-search-result')[idx++];
+            if (el) el.addEventListener('click', () => {
+                item.action();
+                document.getElementById('mapSearch').value = '';
+                res.style.display = 'none';
+            });
+        });
+    });
+}
+
+function flyToMember(member) {
+    const info = _memberMarkers[member.id];
+    if (info) {
+        map.flyTo(info.latlng, 12);
+        setTimeout(() => showMemberSheet(member, !!(member.lat && member.lng)), 800);
+    } else {
+        const ll = regionToLatLng(member.region, member.country);
+        if (ll) map.flyTo(ll, 8);
+    }
+}
+
+let addRepeaterMode = false;
+
+function toggleAddRepeaterMode() {
+    addRepeaterMode = !addRepeaterMode;
+    const btn = document.getElementById('addRepBtn');
+    btn.classList.toggle('active', addRepeaterMode);
+    btn.textContent = addRepeaterMode ? '— Cancel' : '+ Rep';
+    if (addMode && addRepeaterMode) { addMode = false; document.getElementById('addPinBtn').classList.remove('active'); document.getElementById('addPinBtn').textContent = '+ Pin'; }
+}
+
+function init() {
+    renderNav('map');
+    registerPushNotifications();
+    if (communityToken()) document.getElementById('addRepBtn').style.display = '';
+
+    map = L.map('map', { doubleClickZoom: false }).setView([54.0, -2.0], 6);
+
+    CachedTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+        subdomains: ['a','b','c'],
+    }).addTo(map);
+
+    // Create a LayerGroup for every filter category and add to map
+    LAYER_KEYS.forEach(k => {
+        if (k === 'meshcore_map') {
+            layers[k] = L.markerClusterGroup({
+                maxClusterRadius: 40,
+                iconCreateFunction: function(cluster) {
+                    const count = cluster.getChildCount();
+                    const colour = count > 100 ? '#9b59b6' : count > 10 ? '#8e44ad' : '#7d3c98';
+                    return L.divIcon({
+                        html: `<div style="background:${colour};color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #0f1210;">${count}</div>`,
+                        className: '',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                    });
+                }
+            }).addTo(map);
+        } else {
+            layers[k] = L.layerGroup().addTo(map);
+        }
+    });
+
+    loadPins();
+    renderPinList();
+
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _focusOnAir = _urlParams.get('focus') === 'on_air';
+    const _focusPinId = _urlParams.get('pin') ? parseInt(_urlParams.get('pin'), 10) : null;
+
+    if (_focusOnAir) mapToast('Loading On Air pins…', 0);
+
+    loadCommunityPins().then(() => {
+        if (_focusOnAir) focusOnAirPin(_focusPinId);
+    }).catch(() => {
+        if (_focusOnAir) {
+            mapToast('Server waking up — retrying in 10s…', 9000);
+            setTimeout(() => loadCommunityPins().then(() => focusOnAirPin(_focusPinId)), 10000);
+        }
+    });
+
+    loadGroupsForPicker();
+    loadLiveContacts();
+    loadPublicContacts();
+    loadRpnRepeaters();
+    // MeshCore loads on-demand when the layer is toggled on (too many nodes to load at startup)
+
+    // Refresh community pins, live contacts and public contacts every 2 minutes to clear expired ones
+    setInterval(() => {
+        loadCommunityPins();
+        loadLiveContacts();
+        loadPublicContacts();
+    }, 2 * 60 * 1000);
+
+    // Drop-pin click handler
+    document.getElementById('map').addEventListener('click', function(e) {
+        const latlng = map.mouseEventToLatLng(e);
+        if (addRepeaterMode) {
+            addRepeaterMode = false;
+            document.getElementById('addRepBtn').classList.remove('active');
+            document.getElementById('addRepBtn').textContent = '+ Rep';
+            openAddRepeaterModal(latlng);
+            return;
+        }
+        if (!addMode) return;
+        pendingLatLng = latlng;
+        document.getElementById('pinLat').value = latlng.lat.toFixed(6);
+        document.getElementById('pinLng').value = latlng.lng.toFixed(6);
+        document.getElementById('addPanel').style.display = 'block';
+        addMode = false;
+        document.getElementById('addPinBtn').classList.remove('active');
+        document.getElementById('addPinBtn').textContent = '+ Pin';
+    });
+}
+
+function makeIcon(type) {
+    const colour = PIN_COLOURS[type] || '#7a8f78';
+    let inner = `<circle cx="12" cy="12" r="5" fill="#0f1210"/>`;
+    if (type === 'on_air') {
+        // Broadcast waves
+        inner = `<circle cx="12" cy="14" r="3" fill="#0f1210"/>
+        <path d="M7 9 Q12 4 17 9" stroke="#0f1210" stroke-width="1.8" fill="none"/>
+        <path d="M9 11 Q12 7 15 11" stroke="#0f1210" stroke-width="1.5" fill="none"/>`;
+    } else if (type === 'meshcore_repeater') {
+        // Tower shape
+        inner = `<line x1="12" y1="5" x2="12" y2="18" stroke="#0f1210" stroke-width="2"/>
+        <line x1="8" y1="10" x2="16" y2="10" stroke="#0f1210" stroke-width="1.5"/>
+        <line x1="9" y1="15" x2="15" y2="15" stroke="#0f1210" stroke-width="1.5"/>
+        <line x1="12" y1="5" x2="8" y2="10" stroke="#0f1210" stroke-width="1.5"/>
+        <line x1="12" y1="5" x2="16" y2="10" stroke="#0f1210" stroke-width="1.5"/>`;
+    } else if (type === 'meshcore_companion') {
+        // Device/node dot with ring
+        inner = `<circle cx="12" cy="12" r="4" fill="#0f1210"/>
+        <circle cx="12" cy="12" r="7" stroke="#0f1210" stroke-width="1.5" fill="none"/>`;
+    }
+    const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${colour}"/>
+        ${inner}
+    </svg>`);
+    return L.icon({ iconUrl: 'data:image/svg+xml,' + svg, iconSize: [24, 36], iconAnchor: [12, 36], popupAnchor: [0, -36] });
+}
+
+function onPinTypeChange() {
+    const type = document.getElementById('pinType').value;
+    const isLive = ['on_air', 'meshcore_companion'].includes(type);
+    const isMesh = ['on_air', 'meshcore_repeater', 'meshcore_companion'].includes(type);
+    document.getElementById('pinChannel').style.display  = isMesh ? '' : 'none';
+    document.getElementById('pinDuration').style.display = isLive ? '' : 'none';
+    // Duration label tweak for MeshCore Companion
+    const dur = document.getElementById('pinDuration');
+    if (type === 'meshcore_companion') {
+        dur.options[0].text = 'Active for 1 hour';
+        dur.options[1].text = 'Active for 2 hours';
+        dur.options[2].text = 'Active for 4 hours';
+        dur.options[3].text = 'Active for 8 hours';
+        dur.options[4].text = 'Active until tomorrow';
+    } else {
+        dur.options[0].text = 'On air for 1 hour';
+        dur.options[1].text = 'On air for 2 hours';
+        dur.options[2].text = 'On air for 4 hours';
+        dur.options[3].text = 'On air for 8 hours';
+        dur.options[4].text = 'On air until tomorrow';
+    }
+    // Live pins default to public visibility
+    if (isLive) {
+        document.getElementById('pinVisibility').value = 'public';
+        onVisibilityChange();
+    }
+}
+
+function loadPins() {
+    const data = loadMap();
+    const now = Date.now();
+    (data.markers || []).forEach(pin => {
+        if (pin.expires_at && new Date(pin.expires_at) < now) return;
+        addMarker(pin);
+    });
+}
+
+function addMarker(pin) {
+    const callsignLine = pin.callsign ? `<br><span style="font-size:12px;color:#d4a017;">${escHtml(pin.callsign)}</span>` : '';
+    const channelLine  = pin.channel  ? `<br><span style="font-size:12px;color:#6dbf5a;">📻 ${escHtml(pin.channel)}</span>` : '';
+    let expiryLine = '';
+    if (pin.expires_at) {
+        const exp = new Date(pin.expires_at);
+        const mins = Math.round((exp - Date.now()) / 60000);
+        if (mins > 0) {
+            const timeStr = mins < 60 ? `${mins} min` : `${Math.round(mins/60)} hr`;
+            expiryLine = `<br><span style="font-size:11px;color:#7a8f78;">On air for another ${timeStr}</span>`;
+        } else {
+            expiryLine = `<br><span style="font-size:11px;color:#c0392b;">Expired</span>`;
+        }
+    }
+    const layerKey = pin.type || 'general';
+    const m = L.marker([pin.lat, pin.lng], { icon: makeIcon(layerKey) })
+        .addTo(layers[layerKey])
+        .bindPopup(`<strong style="color:#d4d9d4">${escHtml(pin.name)}</strong>${callsignLine}${channelLine}${expiryLine}${pin.notes ? '<br><span style="font-size:12px;color:#7a8f78">'+escHtml(pin.notes)+'</span>' : ''}<br><div style="display:flex;gap:6px;margin-top:6px;"><button onclick="openEditPanel(${JSON.stringify({name:pin.name,notes:pin.notes||'',type:pin.type,channel:pin.channel||''})},${pin.id},${pin.server_id||null})" style="background:#2a4a2a;border:none;color:#6dbf5a;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;">Edit</button><button onclick="deletePin(${pin.id})" style="background:#c0392b;border:none;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;">Delete</button></div>`, { className: '' });
+    markers[pin.id] = { marker: m, type: layerKey };
+    if (!layerVisible[layerKey]) layers[layerKey].removeLayer(m);
+}
+
+function toggleAddMode() {
+    addMode = !addMode;
+    const btn = document.getElementById('addPinBtn');
+    btn.classList.toggle('active', addMode);
+    btn.textContent = addMode ? '— Cancel' : '+ Pin';
+    if (!addMode) {
+        document.getElementById('addPanel').style.display = 'none';
+    }
+}
+
+async function savePin() {
+    const name = document.getElementById('pinName').value.trim();
+    if (!name) { alert('Name is required.'); return; }
+    if (!pendingLatLng) { alert('Click the map to place the pin first.'); return; }
+
+    const visibility = document.getElementById('pinVisibility').value;
+    const data = loadMap();
+    const ids = (data.markers || []).map(m => m.id || 0);
+    const id = ids.length ? Math.max(...ids) + 1 : 1;
+    const pinType = document.getElementById('pinType').value;
+    const isTemp  = ['on_air', 'meshcore_companion'].includes(pinType);
+    const isMesh  = ['on_air', 'meshcore_repeater', 'meshcore_companion'].includes(pinType);
+    const channel = isMesh ? (document.getElementById('pinChannel').value.trim() || null) : null;
+    let expiresAt = null;
+    if (isTemp) {
+        const hours = parseInt(document.getElementById('pinDuration').value) || 1;
+        expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    }
+    const me = communityUser();
+    const callsign = me ? (me.rpn_callsign || me.callsign || null) : null;
+    const pin = {
+        id,
+        name,
+        type:       pinType,
+        lat:        pendingLatLng.lat,
+        lng:        pendingLatLng.lng,
+        notes:      document.getElementById('pinNotes').value.trim(),
+        visibility,
+        channel,
+        expires_at: expiresAt,
+        callsign,
+    };
+    data.markers = data.markers || [];
+    data.markers.push(pin);
+    saveMap(data);
+    addMarker(pin);
+    renderPinList();
+
+    // If group or public and signed in, also save to community server
+    if ((visibility === 'public' || visibility === 'group') && communityToken()) {
+        try {
+            const groupId = visibility === 'group' ? (parseInt(document.getElementById('pinGroup').value) || null) : null;
+            if (visibility === 'group' && !groupId) {
+                alert('Please select a group first.');
+                return;
+            }
+            // Compute expires_at for temporary pin types
+            let expiresAt = null;
+            const isTemp = ['on_air', 'meshcore_companion'].includes(pin.type);
+            if (isTemp) {
+                const hours = parseInt(document.getElementById('pinDuration').value) || 1;
+                const exp = new Date(Date.now() + hours * 3600 * 1000);
+                expiresAt = exp.toISOString();
+            }
+            const channel = document.getElementById('pinChannel').value.trim() || null;
+            const saved = await communityCreatePin({ name: pin.name, type: pin.type, lat: pin.lat, lng: pin.lng, notes: pin.notes, visibility, group_id: groupId, expires_at: expiresAt, channel });
+            // Store server ID so we can delete from server later
+            if (saved && saved.id) {
+                const d = loadMap();
+                const local = (d.markers || []).find(m => m.id === pin.id);
+                if (local) { local.server_id = saved.id; saveMap(d); }
+            }
+        } catch(e) {
+            console.warn('Could not sync pin to community server:', e.message);
+        }
+    } else if ((visibility === 'public' || visibility === 'group') && !communityToken()) {
+        alert('Pin saved locally. Sign in to RPN Community (More tab) to share it.');
+    }
+
+    document.getElementById('addPanel').style.display = 'none';
+    document.getElementById('pinName').value    = '';
+    document.getElementById('pinNotes').value   = '';
+    document.getElementById('pinChannel').value = '';
+    document.getElementById('pinType').value    = 'general';
+    document.getElementById('pinChannel').style.display  = 'none';
+    document.getElementById('pinDuration').style.display = 'none';
+    pendingLatLng = null;
+    addMode = false;
+    document.getElementById('addPinBtn').classList.remove('active');
+    document.getElementById('addPinBtn').textContent = '+ Pin';
+}
+
+async function loadGroupsForPicker() {
+    if (!communityToken()) return;
+    try {
+        const groups = await communityGetGroups();
+        const sel = document.getElementById('pinGroup');
+        if (!groups.length) {
+            sel.innerHTML = '<option value="">No groups — create one in Community</option>';
+        } else {
+            sel.innerHTML = groups.map(g => `<option value="${g.id}">${escHtml(g.name)}</option>`).join('');
+        }
+    } catch(e) { /* silently fail */ }
+}
+
+function onVisibilityChange() {
+    const vis = document.getElementById('pinVisibility').value;
+    document.getElementById('pinGroup').style.display = vis === 'group' ? '' : 'none';
+}
+
+async function loadCommunityPins() {
+    if (!communityToken()) return;
+    let pins = [], members = [];
+    let fromCache = false;
+
+    try {
+        [pins, members, _myContacts, _mySentRequests] = await Promise.all([communityGetPins(), communityGetMembers(), communityGetContacts(), communityGetSentContactRequests()]);
+        // Update cache while online
+        localStorage.setItem('rpn_cached_community_pins', JSON.stringify(pins));
+        localStorage.setItem('rpn_cached_community_members', JSON.stringify(members));
+        localStorage.setItem('rpn_cached_community_at', new Date().toISOString());
+        _allCommunityPins = pins;
+        _allMembers = members;
+    } catch(e) {
+        // Offline — try cache
+        const cachedPins    = localStorage.getItem('rpn_cached_community_pins');
+        const cachedMembers = localStorage.getItem('rpn_cached_community_members');
+        if (cachedPins)    { pins    = JSON.parse(cachedPins);    fromCache = true; }
+        if (cachedMembers) { members = JSON.parse(cachedMembers); fromCache = true; }
+    }
+
+    const me = communityUser();
+
+    // Clear existing community & member layers before redrawing
+    ['on_air','meshcore_repeater','meshcore_companion','community_rally','community_cache','community_hazard','community_general','members','live_contacts'].forEach(k => layers[k].clearLayers());
+
+    // Draw community pins
+    const now = new Date();
+    pins.forEach(pin => {
+        const isOwner = me && pin.owner_id === me.id;
+        if (pin.expires_at && new Date(pin.expires_at) < now) return;
+        const lk = communityPinLayer(pin.type);
+        const icon = makeIcon(pin.type || 'general');
+        let typeLabel = '';
+        if (pin.type === 'on_air')                 typeLabel = '<span style="color:#ff6b35;">📡 On Air</span>';
+        else if (pin.type === 'meshcore_repeater') typeLabel = '<span style="color:#7b68ee;">🗼 MeshCore Repeater</span>';
+        else if (pin.type === 'meshcore_companion')typeLabel = '<span style="color:#00bcd4;">📟 MeshCore Companion</span>';
+        else if (pin.type === 'rally')             typeLabel = '<span style="color:#6dbf5a;">🏁 Rally Point</span>';
+        else if (pin.type === 'cache')             typeLabel = '<span style="color:#d4a017;">📦 Cache</span>';
+        else if (pin.type === 'hazard')            typeLabel = '<span style="color:#c0392b;">⚠️ Hazard</span>';
+        else                                       typeLabel = '<span style="color:#7a8f78;">📌 General</span>';
+        const owner = members.find(m => m.id === pin.owner_id);
+        const ownerCallsign = owner ? (owner.rpn_callsign || owner.callsign || null) : null;
+        const callsignLine = ownerCallsign ? `<br><span style="font-size:12px;color:#d4a017;">${escHtml(ownerCallsign)}</span>` : '';
+        const channelLine  = pin.channel ? `<br><span style="font-size:13px;font-weight:600;color:#6dbf5a;">📻 ${escHtml(pin.channel)}</span>` : '';
+        let expiryLine = '';
+        if (pin.expires_at) {
+            const mins = Math.round((new Date(pin.expires_at) - now) / 60000);
+            expiryLine = `<br><span style="font-size:11px;color:#7a8f78;">On air for another ${mins < 60 ? mins+'m' : Math.round(mins/60)+'h'}</span>`;
+        }
+        const editBtn   = isOwner ? `<button onclick="openEditPanel(${JSON.stringify({name:pin.name,notes:pin.notes||'',type:pin.type,channel:pin.channel||''})},null,${pin.id})" style="background:#2a4a2a;border:none;color:#6dbf5a;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;">Edit</button>` : '';
+        const deleteBtn = isOwner ? `<button onclick="deleteCommunityPin(${pin.id})" style="background:#c0392b;border:none;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;">Delete</button>` : '';
+        const ownerBtns = isOwner ? `<br><div style="display:flex;gap:6px;margin-top:6px;">${editBtn}${deleteBtn}</div>` : '';
+        L.marker([pin.lat, pin.lng], { icon })
+            .addTo(layers[lk])
+            .bindPopup(`<strong style="color:#d4d9d4">${escHtml(pin.name)}</strong><br><span style="font-size:11px;">${typeLabel}${fromCache ? ' (cached)' : ''}</span>${callsignLine}${channelLine}${expiryLine}${pin.notes ? '<br><span style="font-size:12px;color:#7a8f78">'+escHtml(pin.notes)+'</span>' : ''}${ownerBtns}`);
+    });
+
+    // Draw member markers — exact location or region fallback
+    members.forEach(member => {
+        const isSelf  = me && member.id === me.id;
+        const exactLoc = member.lat && member.lng;
+        const latlng = exactLoc
+            ? [member.lat, member.lng]
+            : regionToLatLng(member.region, member.country);
+        if (!latlng) return;
+        const jitter = () => exactLoc ? 0 : (Math.random() - 0.5) * 0.4;
+        // Self = blue pin, others = green
+        const colour = isSelf ? '#4fc3f7' : '#6dbf5a';
+        const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+            <circle cx="14" cy="14" r="13" fill="${colour}" stroke="#0f1210" stroke-width="2"/>
+            <circle cx="14" cy="10" r="4" fill="#0f1210"/>
+            <path d="M6 22 Q6 16 14 16 Q22 16 22 22" fill="#0f1210"/>
+        </svg>`);
+        const icon = L.icon({ iconUrl: 'data:image/svg+xml,' + svg, iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14] });
+        const cs = [member.rpn_callsign, member.callsign].filter(Boolean).join(' / ') || 'No callsign';
+        const m = L.marker([latlng[0] + jitter(), latlng[1] + jitter()], { icon })
+            .addTo(layers['members']);
+        m.on('click', () => showMemberSheet(member, exactLoc));
+        _memberMarkers[member.id] = { marker: m, latlng: [latlng[0], latlng[1]] };
+    });
+
+    // Restore local user markers that were wiped by clearLayers above.
+    // Community layers are shared with local pin layers (e.g. 'on_air'), so
+    // clearLayers() removes both. Re-add from the markers map which persists.
+    const COMMUNITY_LAYERS = new Set(['on_air','meshcore_repeater','meshcore_companion','community_rally','community_cache','community_hazard','community_general']);
+    Object.values(markers).forEach(function(m) {
+        if (COMMUNITY_LAYERS.has(m.type) && layers[m.type]) {
+            layers[m.type].addLayer(m.marker);
+        }
+    });
+}
+
+async function loadLiveContacts() {
+    if (!communityToken()) return;
+    try {
+        const contacts = await communityGetActiveLiveContacts();
+        contacts.forEach(lc => {
+            const hasReq   = lc.requester_lat   && lc.requester_lng;
+            const hasOther = lc.other_lat       && lc.other_lng;
+            if (!hasReq || !hasOther) return;
+
+            const a = [lc.requester_lat, lc.requester_lng];
+            const b = [lc.other_lat,     lc.other_lng];
+
+            // Animated dashed polyline using Leaflet SVG renderer
+            const line = L.polyline([a, b], {
+                color:     '#ff6b35',
+                weight:    3,
+                dashArray: '10, 8',
+                opacity:   0.85,
+                renderer:  L.svg(),
+            }).addTo(layers['live_contacts']);
+
+            // Apply CSS animation to the SVG path after it renders
+            setTimeout(() => {
+                const el = line.getElement();
+                if (el) el.classList.add('live-contact-line');
+            }, 100);
+
+            // Dot markers at each end
+            const dotIcon = (colour) => {
+                const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="${colour}" stroke="#0f1210" stroke-width="1.5"/></svg>`);
+                return L.icon({ iconUrl: 'data:image/svg+xml,' + svg, iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -8] });
+            };
+
+            const exp   = lc.expires_at ? new Date(lc.expires_at) : null;
+            const mins  = exp ? Math.round((exp - Date.now()) / 60000) : null;
+            const timeStr = mins ? (mins < 60 ? `${mins} min` : `${Math.round(mins/60)} hr`) : '';
+            const details = [lc.frequency, lc.mode].filter(Boolean).join(' · ');
+            const popupHtml = `
+                <strong style="color:#ff6b35;">📡 Live Contact</strong><br>
+                <span style="color:#d4d9d4;font-size:13px;">${escHtml(lc.requester_callsign || lc.requester_name)} ↔ ${escHtml(lc.other_callsign || lc.other_name)}</span>
+                ${details ? `<br><span style="font-size:12px;color:#6dbf5a;">📻 ${escHtml(details)}</span>` : ''}
+                ${timeStr ? `<br><span style="font-size:11px;color:#7a8f78;">Live for another ${timeStr}</span>` : ''}`;
+
+            L.marker(a, { icon: dotIcon('#ff6b35') }).addTo(layers['live_contacts']).bindPopup(popupHtml);
+            L.marker(b, { icon: dotIcon('#ff6b35') }).addTo(layers['live_contacts']).bindPopup(popupHtml);
+        });
+    } catch(e) { /* offline — skip */ }
+}
+
+function focusOnAirPin(pinId) {
+    // Find the first on_air community pin and fly to it
+    const now = new Date();
+    const pins = _allCommunityPins.filter(p => {
+        if (p.type !== 'on_air') return false;
+        if (p.expires_at && new Date(p.expires_at) < now) return false;
+        return true;
+    });
+    if (!pins.length) { mapToast('No active On Air pins found', 4000); return; }
+
+    // Prefer the specific pin if we have an ID
+    const target = (pinId && pins.find(p => p.id === pinId)) || pins[0];
+    map.flyTo([target.lat, target.lng], 12);
+    mapToast('', 1); // clear the loading toast
+    // Brief delay to let the tile animation settle, then pulse the pin
+    setTimeout(() => {
+        const who = target.author_callsign || target.author_name || target.name || 'Member';
+        const ch  = target.channel ? ` · ${target.channel}` : '';
+        mapToast(`📡 ${who} is on air${ch}`, 5000);
+    }, 1200);
+}
+
+function cancelAdd() {
+    document.getElementById('addPanel').style.display = 'none';
+    pendingLatLng = null;
+    addMode = false;
+    document.getElementById('addPinBtn').classList.remove('active');
+    document.getElementById('addPinBtn').textContent = '+ Pin';
+}
+
+async function deleteCommunityPin(serverId) {
+    if (!confirm('Delete this pin?')) return;
+    try {
+        await communityDeletePin(serverId);
+        map.closePopup();
+        // Also remove from local storage if it was saved there
+        const data = loadMap();
+        const local = (data.markers || []).find(m => m.server_id === serverId);
+        if (local) {
+            data.markers = data.markers.filter(m => m.server_id !== serverId);
+            saveMap(data);
+            if (markers[local.id]) { markers[local.id].marker.remove(); delete markers[local.id]; }
+            renderPinList();
+        }
+        // Reload community pins to remove the marker from map
+        loadCommunityPins();
+    } catch(e) {
+        alert('Could not delete pin: ' + e.message);
+    }
+}
+
+function onEditTypeChange() {
+    const type = document.getElementById('editType').value;
+    const isMesh = ['on_air', 'meshcore_repeater', 'meshcore_companion'].includes(type);
+    document.getElementById('editChannel').style.display = isMesh ? '' : 'none';
+}
+
+function openEditPanel(pin, localId, serverId) {
+    editingLocalId  = localId  || null;
+    editingServerId = serverId || null;
+    document.getElementById('editName').value    = pin.name    || '';
+    document.getElementById('editNotes').value   = pin.notes   || '';
+    document.getElementById('editChannel').value = pin.channel || '';
+    document.getElementById('editType').value    = pin.type    || 'general';
+    onEditTypeChange();
+    togglePanel('editPanel');
+    map.closePopup();
+}
+
+function closeEditPanel() {
+    document.getElementById('editPanel').style.display = 'none';
+    editingLocalId  = null;
+    editingServerId = null;
+}
+
+async function saveEdit() {
+    const name    = document.getElementById('editName').value.trim();
+    const notes   = document.getElementById('editNotes').value.trim();
+    const type    = document.getElementById('editType').value;
+    const channel = document.getElementById('editChannel').value.trim() || null;
+    if (!name) { alert('Name is required.'); return; }
+
+    // Update local pin if we have a local id
+    if (editingLocalId !== null) {
+        const data = loadMap();
+        const pin = (data.markers || []).find(m => m.id === editingLocalId);
+        if (pin) {
+            pin.name    = name;
+            pin.notes   = notes;
+            pin.type    = type;
+            pin.channel = channel;
+            saveMap(data);
+            // Refresh marker
+            if (markers[editingLocalId]) {
+                markers[editingLocalId].marker.remove();
+                delete markers[editingLocalId];
+            }
+            addMarker(pin);
+            renderPinList();
+        }
+    }
+
+    // Update on server if we have a server id
+    if (editingServerId !== null && communityToken()) {
+        try {
+            await fetch(COMMUNITY_API + '/pins/' + editingServerId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + communityToken() },
+                body: JSON.stringify({ name, notes: notes || null, type }),
+            });
+        } catch(e) {
+            console.warn('Could not update pin on server:', e.message);
+        }
+    }
+
+    closeEditPanel();
+}
+
+async function deletePin(id) {
+    if (!confirm('Delete this pin?')) return;
+    const data = loadMap();
+    const pin = (data.markers || []).find(m => m.id === id);
+    // Remove from server if it was synced
+    if (pin && pin.server_id && communityToken()) {
+        try { await communityDeletePin(pin.server_id); } catch(e) { console.warn('Could not remove pin from server:', e.message); }
+    }
+    data.markers = (data.markers || []).filter(m => m.id !== id);
+    saveMap(data);
+    if (markers[id]) { markers[id].marker.remove(); delete markers[id]; }
+    renderPinList();
+    map.closePopup();
+}
+
+function renderPinList() {
+    const data = loadMap();
+    const now = Date.now();
+    const pins = (data.markers || []).filter(pin => !pin.expires_at || new Date(pin.expires_at) >= now);
+    const el = document.getElementById('pinList');
+    if (!pins.length) { el.innerHTML = '<p class="empty" style="font-size:12px;">No pins yet.</p>'; return; }
+    el.innerHTML = pins.map(pin => `
+        <div class="pin-item" onclick="flyTo(${pin.id})">
+            <div>
+                <div class="pin-name">${escHtml(pin.name)}</div>
+                <div class="pin-type">${escHtml(pin.type||'general')} &mdash; ${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}</div>
+            </div>
+            <span style="color:${PIN_COLOURS[pin.type]||'#7a8f78'};font-size:18px;">&#9679;</span>
+        </div>`).join('');
+}
+
+function flyTo(id) {
+    const data = loadMap();
+    const pin = (data.markers || []).find(m => m.id === id);
+    if (!pin) return;
+    map.flyTo([pin.lat, pin.lng], 14);
+    if (markers[id]) markers[id].marker.openPopup();
+    togglePanel('listPanel');
+}
+
+function toggleLayer(type) {
+    layerVisible[type] = !layerVisible[type];
+    const btn = document.getElementById('layer-' + type);
+    if (btn) btn.classList.toggle('on', layerVisible[type]);
+    if (layers[type]) {
+        if (layerVisible[type]) {
+            layers[type].addTo(map);
+            if (type === 'meshcore_map' && !_meshcoreLoaded) loadMeshcoreNodes();
+        } else {
+            layers[type].remove();
+        }
+    }
+}
+
+function togglePanel(id) {
+    const panels = ['addPanel', 'listPanel', 'helpPanel'];
+    panels.forEach(p => {
+        if (p !== id) document.getElementById(p).style.display = 'none';
+    });
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (id === 'helpPanel' && el.style.display === 'block') updateOfflineStatus();
+}
+
+async function saveOffline() {
+    const bounds = map.getBounds();
+    const zoom = map.getZoom();
+    const minZ = Math.max(zoom - 3, 1);
+    const maxZ = Math.min(zoom + 1, 16);
+
+    // Build tile URL list
+    const urls = [];
+    const subdomains = ['a','b','c'];
+    for (let z = minZ; z <= maxZ; z++) {
+        const nw = L.CRS.EPSG3857.latLngToPoint(bounds.getNorthWest(), z).divideBy(256).floor();
+        const se = L.CRS.EPSG3857.latLngToPoint(bounds.getSouthEast(), z).divideBy(256).ceil();
+        for (let x = nw.x; x <= se.x; x++) {
+            for (let y = nw.y; y <= se.y; y++) {
+                const s = subdomains[(x + y) % 3];
+                urls.push(`https://${s}.tile.openstreetmap.org/${z}/${x}/${y}.png`);
+            }
+        }
+    }
+
+    if (urls.length > 2000) {
+        if (!confirm(`This will cache approximately ${urls.length} map tiles. That may take a while. Continue?`)) return;
+    }
+
+    const btn = document.getElementById('saveOfflineBtn');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    // Cache tiles in batches to avoid hammering the network
+    const BATCH = 20;
+    let done = 0;
+    for (let i = 0; i < urls.length; i += BATCH) {
+        const batch = urls.slice(i, i + BATCH);
+        await Promise.all(batch.map(url => cacheTile(url).then(() => done++).catch(() => done++)));
+        btn.textContent = `Saving... ${Math.round((done / urls.length) * 100)}%`;
+    }
+
+    // Also cache community data if signed in
+    let communityMsg = '';
+    if (communityToken()) {
+        try {
+            const [pins, members] = await Promise.all([communityGetPins(), communityGetMembers()]);
+            localStorage.setItem('rpn_cached_community_pins', JSON.stringify(pins));
+            localStorage.setItem('rpn_cached_community_members', JSON.stringify(members));
+            localStorage.setItem('rpn_cached_community_at', new Date().toISOString());
+            communityMsg = ` + ${pins.length} community pins and ${members.length} member locations saved.`;
+        } catch(e) {
+            communityMsg = ' (Community data unavailable.)';
+        }
+    }
+
+    btn.innerHTML = '&#8659; Offline';
+    btn.disabled = false;
+    alert(`Done — ${done} tiles saved for offline use.${communityMsg}`);
+    updateOfflineStatus();
+}
+
+function updateOfflineStatus() {
+    const el = document.getElementById('offlineStatus');
+    if (!el) return;
+    countTiles().then(n => {
+        el.textContent = n > 0 ? `${n} tiles cached for offline use.` : 'No tiles cached yet.';
+    }).catch(() => { el.textContent = ''; });
+}
+
+function makeCircleIcon(colour, size) {
+    const s = size || 12;
+    const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${s*2}" height="${s*2}" viewBox="0 0 ${s*2} ${s*2}"><circle cx="${s}" cy="${s}" r="${s-1}" fill="${colour}" stroke="#0f1210" stroke-width="1.5"/></svg>`);
+    return L.icon({ iconUrl: 'data:image/svg+xml,' + svg, iconSize: [s*2, s*2], iconAnchor: [s, s], popupAnchor: [0, -(s+2)] });
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function mapToast(msg, duration) {
+    let el = document.getElementById('mapToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'mapToast';
+        el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e2820;color:#d4d9d4;padding:8px 16px;border-radius:20px;font-size:13px;z-index:9999;border:1px solid #3a4a3a;pointer-events:none;';
+        document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    if (duration !== 0) el._t = setTimeout(() => { el.style.display = 'none'; }, duration || 3000);
+}
+
+async function loadMeshcoreNodes(retry) {
+    if (!communityToken()) { mapToast('Sign in to view MeshCore nodes', 3000); return; }
+    _meshcoreLoaded = true;
+    mapToast('Loading MeshCore nodes…', 0);
+    try {
+        const nodes = await communityGetMeshcoreNodes();
+        if (!nodes.length && !retry) {
+            mapToast('MeshCore data loading on server — retrying in 10s…', 9000);
+            setTimeout(() => loadMeshcoreNodes(true), 10000);
+            return;
+        }
+        layers['meshcore_map'].clearLayers();
+        _allMeshcoreNodes = nodes;
+        nodes.forEach(n => {
+            const colour = MESHCORE_TYPE_COLOURS[n.type] || '#95a5a6';
+            const icon = makeCircleIcon(colour, 7);
+            const typeLabel = n.type.charAt(0).toUpperCase() + n.type.slice(1);
+            const freqLine = n.frequency ? `<br><span style="font-size:12px;color:#6dbf5a;">📻 ${escHtml(n.frequency)}</span>` : '';
+            const presetLine = n.radio_preset ? `<br><span style="font-size:11px;color:#7a8f78;">${escHtml(n.radio_preset)}</span>` : '';
+            const updLine = n.updated_at ? `<br><span style="font-size:11px;color:#7a8f78;">Updated: ${new Date(n.updated_at).toLocaleDateString()}</span>` : '';
+            L.marker([n.lat, n.lng], { icon })
+                .addTo(layers['meshcore_map'])
+                .bindPopup(`<strong style="color:#d4d9d4;">${escHtml(n.name)}</strong><br><span style="color:${colour};font-size:11px;">MeshCore ${typeLabel}</span>${freqLine}${presetLine}${updLine}`);
+        });
+        mapToast(`Loaded ${nodes.length} MeshCore nodes`, 3000);
+    } catch(e) {
+        mapToast('MeshCore failed: ' + e.message, 5000);
+    }
+}
+
+async function loadPublicContacts() {
+    if (!communityToken()) return;
+    try {
+        const contacts = await communityGetPublicMapLogs();
+        layers['public_contacts'].clearLayers();
+        contacts.forEach(c => {
+            const myLL    = [c.my_lat, c.my_lng];
+            const theirLL = [c.their_lat, c.their_lng];
+            const freq    = c.frequency ? `📻 ${escHtml(c.frequency)}` : '';
+            const mode    = c.mode ? ` · ${escHtml(c.mode)}` : '';
+            const expiry  = c.map_expires_at ? `<br><span style="font-size:11px;color:#7a8f78;">Until ${new Date(c.map_expires_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>` : '';
+            const popup   = `<strong style="color:#d4d9d4;">${escHtml(c.owner_callsign || c.owner_name)}</strong> ↔ <strong style="color:#d4d9d4;">${escHtml(c.their_callsign)}</strong><br><span style="font-size:12px;color:#6dbf5a;">${freq}${mode}</span>${expiry}`;
+
+            // Line between stations
+            L.polyline([myLL, theirLL], { color: '#e67e22', weight: 2, opacity: 0.8, dashArray: '6 4' })
+                .addTo(layers['public_contacts']).bindPopup(popup);
+
+            // Dot at each end
+            const dotIcon = makeCircleIcon('#e67e22', 8);
+            L.marker(myLL,    { icon: dotIcon }).addTo(layers['public_contacts']).bindPopup(popup);
+            L.marker(theirLL, { icon: dotIcon }).addTo(layers['public_contacts']).bindPopup(popup);
+        });
+    } catch(e) { /* offline */ }
+}
+
+async function loadRpnRepeaters() {
+    if (!communityToken()) return;
+    try {
+        const repeaters = await communityGetRepeaters();
+        layers['rpn_repeaters'].clearLayers();
+        _allRpnRepeaters = repeaters;
+        const me = communityUser();
+        const isStaff = me && (me.is_admin || me.is_manager);
+        repeaters.forEach(r => {
+            const colour = REPEATER_TYPE_COLOURS[r.type] || '#e67e22';
+            const icon = makeCircleIcon(colour, 9);
+            const typeLabel = r.type.charAt(0).toUpperCase() + r.type.slice(1);
+            const freqLine = r.frequency ? `<br><span style="font-size:12px;color:#6dbf5a;">📻 ${escHtml(r.frequency)}</span>` : '';
+            const notesLine = r.notes ? `<br><span style="font-size:12px;color:#7a8f78;">${escHtml(r.notes)}</span>` : '';
+            const deleteBtn = isStaff ? `<br><button onclick="deleteRpnRepeater(${r.id})" style="margin-top:6px;background:#c0392b;border:none;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;">Delete</button>` : '';
+            L.marker([r.lat, r.lng], { icon })
+                .addTo(layers['rpn_repeaters'])
+                .bindPopup(`<strong style="color:#d4d9d4;">${escHtml(r.name)}</strong><br><span style="color:${colour};font-size:11px;">RPN ${typeLabel} Repeater</span>${freqLine}${notesLine}${deleteBtn}`);
+        });
+    } catch(e) { /* offline */ }
+}
+
+async function deleteRpnRepeater(id) {
+    if (!confirm('Delete this repeater?')) return;
+    try {
+        await communityDeleteRepeater(id);
+        map.closePopup();
+        loadRpnRepeaters();
+    } catch(e) { alert('Could not delete: ' + e.message); }
+}
+
+let _addRepeaterLatLng = null;
+
+function openAddRepeaterModal(latlng) {
+    _addRepeaterLatLng = latlng;
+    document.getElementById('repLat').value = latlng.lat.toFixed(6);
+    document.getElementById('repLng').value = latlng.lng.toFixed(6);
+    document.getElementById('repName').value = '';
+    document.getElementById('repFrequency').value = '';
+    document.getElementById('repNotes').value = '';
+    document.getElementById('repType').value = 'radio';
+    document.getElementById('addRepeaterModal').style.display = 'flex';
+}
+
+async function saveRepeater() {
+    const name = document.getElementById('repName').value.trim();
+    if (!name) { alert('Name is required.'); return; }
+    if (!_addRepeaterLatLng) { alert('Location required.'); return; }
+    const btn = document.getElementById('saveRepBtn');
+    btn.textContent = 'Saving...'; btn.disabled = true;
+    try {
+        await communityAddRepeater({
+            name,
+            type: document.getElementById('repType').value,
+            lat: _addRepeaterLatLng.lat,
+            lng: _addRepeaterLatLng.lng,
+            frequency: document.getElementById('repFrequency').value.trim() || null,
+            notes: document.getElementById('repNotes').value.trim() || null,
+        });
+        document.getElementById('addRepeaterModal').style.display = 'none';
+        loadRpnRepeaters();
+    } catch(e) {
+        alert('Error: ' + e.message);
+    } finally {
+        btn.textContent = 'Save Repeater'; btn.disabled = false;
+    }
+}
+
+init();
+</script>
+</body>
+</html>
+

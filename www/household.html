@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Household</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="more.html" style="color:#6dbf5a;font-size:13px;">&#8592; More</a></div>
+    <h2>Household Profile</h2>
+    <p class="form-hint">This drives the Days of Food and Days of Water calculations. Set realistic daily targets for your household.</p>
+
+    <div class="add-form" style="max-width:560px;">
+        <div class="form-row">
+            <label class="input-label">Adults
+                <input type="number" id="f_adults" min="0" value="">
+            </label>
+            <label class="input-label">Children (under 12)
+                <input type="number" id="f_children" min="0" value="">
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="input-label">Adult calories/day
+                <input type="number" id="f_adult_cal" min="0" placeholder="2000">
+            </label>
+            <label class="input-label">Child calories/day
+                <input type="number" id="f_child_cal" min="0" placeholder="1000">
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="input-label">Adult water litres/day
+                <input type="number" id="f_adult_water" min="0" step="0.1" placeholder="2.0">
+            </label>
+            <label class="input-label">Child water litres/day
+                <input type="number" id="f_child_water" min="0" step="0.1" placeholder="1.5">
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="input-label">Pets
+                <input type="number" id="f_pets" min="0" placeholder="0">
+            </label>
+            <label class="input-label">Pet food portions/day
+                <input type="number" id="f_pet_portions" min="0" placeholder="0">
+            </label>
+        </div>
+        <p class="form-hint" style="margin-top:8px;">Tip: enter pet food as "Pet Food" items in Stockpile and set portions per day on each item.</p>
+
+        <div style="margin-top:16px;">
+            <label class="input-label" style="display:block;margin-bottom:8px;">My prep goal
+                <span style="font-size:11px;color:#4a5e48;font-weight:400;"> — your overall readiness score is measured against this</span>
+            </label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;" id="goal-pills">
+                <button type="button" class="goal-pill" data-days="3"   onclick="selectGoal(3)"   style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">72 hours</button>
+                <button type="button" class="goal-pill" data-days="7"   onclick="selectGoal(7)"   style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">1 week</button>
+                <button type="button" class="goal-pill" data-days="14"  onclick="selectGoal(14)"  style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">2 weeks</button>
+                <button type="button" class="goal-pill" data-days="30"  onclick="selectGoal(30)"  style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">1 month</button>
+                <button type="button" class="goal-pill" data-days="90"  onclick="selectGoal(90)"  style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">3 months</button>
+                <button type="button" class="goal-pill" data-days="180" onclick="selectGoal(180)" style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">6 months</button>
+                <button type="button" class="goal-pill" data-days="365" onclick="selectGoal(365)" style="padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #2a4a2a;background:#0f1a0f;color:#7a8f78;">1 year</button>
+            </div>
+        </div>
+
+        <input type="hidden" id="f_prep_goal" value="30">
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+            <button type="button" class="btn-primary" onclick="save()">Save Profile</button>
+            <a href="more.html" class="btn-cancel">Back</a>
+        </div>
+        <div id="savedMsg" style="display:none;color:#6dbf5a;font-size:13px;margin-top:12px;">&#10003; Profile saved.</div>
+    </div>
+
+    <div class="add-form" style="max-width:560px;margin-top:0;" id="calcBlock">
+        <h3>Current Estimate</h3>
+        <div id="calcResult"></div>
+    </div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+function selectGoal(days) {
+    document.querySelectorAll('.goal-pill').forEach(b => {
+        const active = Number(b.dataset.days) === days;
+        b.style.background = active ? '#2a4a2a' : '#0f1a0f';
+        b.style.color = active ? '#6dbf5a' : '#7a8f78';
+        b.style.borderColor = active ? '#3a7a2a' : '#2a4a2a';
+    });
+    document.getElementById('f_prep_goal').value = days;
+}
+
+function init() {
+    renderNav('household');
+    const p = loadHousehold();
+    document.getElementById('f_adults').value       = p.adults ?? 2;
+    document.getElementById('f_children').value     = p.children ?? 0;
+    document.getElementById('f_adult_cal').value    = p.adult_calories ?? 2000;
+    document.getElementById('f_child_cal').value    = p.child_calories ?? 1000;
+    document.getElementById('f_adult_water').value  = p.adult_water ?? 2.0;
+    document.getElementById('f_child_water').value  = p.child_water ?? 1.5;
+    document.getElementById('f_pets').value         = p.pets ?? 0;
+    document.getElementById('f_pet_portions').value = p.pet_portions_per_day ?? 0;
+    selectGoal(p.prep_goal_days || 30);
+    updateCalc();
+}
+
+function save() {
+    const p = {
+        adults:              Number(document.getElementById('f_adults').value) || 0,
+        children:            Number(document.getElementById('f_children').value) || 0,
+        adult_calories:      Number(document.getElementById('f_adult_cal').value) || 2000,
+        child_calories:      Number(document.getElementById('f_child_cal').value) || 1000,
+        adult_water:         Number(document.getElementById('f_adult_water').value) || 2.0,
+        child_water:         Number(document.getElementById('f_child_water').value) || 1.5,
+        pets:                Number(document.getElementById('f_pets').value) || 0,
+        pet_portions_per_day:Number(document.getElementById('f_pet_portions').value) || 0,
+        prep_goal_days:      Number(document.getElementById('f_prep_goal').value) || 30,
+    };
+    saveHousehold(p);
+    document.getElementById('savedMsg').style.display = 'block';
+    setTimeout(() => document.getElementById('savedMsg').style.display = 'none', 2500);
+    updateCalc();
+}
+
+function updateCalc() {
+    const p = {
+        adults: Number(document.getElementById('f_adults').value)||0,
+        children: Number(document.getElementById('f_children').value)||0,
+        adult_calories: Number(document.getElementById('f_adult_cal').value)||2000,
+        child_calories: Number(document.getElementById('f_child_cal').value)||1000,
+        adult_water: Number(document.getElementById('f_adult_water').value)||2.0,
+        child_water: Number(document.getElementById('f_child_water').value)||1.5,
+        pets: Number(document.getElementById('f_pets').value)||0,
+        pet_portions_per_day: Number(document.getElementById('f_pet_portions').value)||0,
+    };
+    const dailyCal = p.adults*p.adult_calories + p.children*p.child_calories;
+    const dailyWater = p.adults*p.adult_water + p.children*p.child_water;
+    document.getElementById('calcResult').innerHTML = `
+        <p style="font-size:13px;color:#c0c9bf;line-height:2;">
+            Daily calories needed: <strong style="color:#6dbf5a">${dailyCal.toLocaleString()} kcal</strong><br>
+            Daily water needed: <strong style="color:#6dbf5a">${dailyWater.toFixed(1)} L</strong><br>
+            ${p.pet_portions_per_day ? `Pet food portions/day: <strong style="color:#6dbf5a">${p.pet_portions_per_day}</strong>` : ''}
+        </p>
+    `;
+}
+
+// Live update on input change
+document.addEventListener('input', function(e) {
+    if (e.target.id && e.target.id.startsWith('f_')) updateCalc();
+});
+
+init();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain &mdash; Community</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <style>
+        .accept-modal { display:none; position:fixed; inset:0; background:#000000cc; z-index:9000; align-items:center; justify-content:center; padding:20px; }
+        .accept-modal-inner { background:var(--surface); border-radius:12px; padding:20px; width:100%; max-width:420px; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="more.html" style="color:#6dbf5a;font-size:13px;">&#8592; More</a></div>
+    <h2>RPN Community</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Connect with RPN members across Europe. Share your radio profile and appear on the community map.</p>
+
+    <!-- POST-REGISTRATION WELCOME (shown once after signup) -->
+    <div id="welcomePanel" style="display:none;background:#1a2a1a;border:1px solid var(--accent);border-radius:10px;padding:20px;max-width:520px;margin-bottom:20px;">
+        <div style="font-size:24px;margin-bottom:8px;">&#128075;</div>
+        <h3 style="margin:0 0 10px;color:var(--text);">Welcome to RPN Community!</h3>
+        <p style="font-size:14px;color:var(--text-muted);line-height:1.7;margin:0 0 12px;">Your account has been created. Here is what happens next:</p>
+        <div style="font-size:13px;color:var(--text-muted);line-height:2;">
+            <div>✅ <strong style="color:var(--text);">Account active</strong> &mdash; you can explore the community map and features right now.</div>
+            <div>â³ <strong style="color:var(--text);">RPN Callsign pending</strong> &mdash; your RPN callsign (e.g. RPN-UK-001) will be issued by the admin team. You will get a push notification when it is assigned. This is not automatic &mdash; it may take a day or two.</div>
+            <div>&#128204; <strong style="color:var(--text);">Complete your profile</strong> &mdash; add your radio equipment, active hours, and region so other members can find you.</div>
+        </div>
+        <button onclick="document.getElementById('welcomePanel').style.display='none'" style="margin-top:16px;width:100%;padding:12px;background:var(--accent);color:#000;font-weight:700;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Got it &mdash; let's go</button>
+    </div>
+
+    <!-- LOGGED IN STATE -->
+    <div id="loggedIn" style="display:none;">
+        <div class="add-form" style="max-width:520px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                <div style="width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#000;" id="avatarInitial">?</div>
+                <div>
+                    <div id="profileName" style="font-size:18px;font-weight:700;color:var(--text-primary);"></div>
+                    <div id="profileCallsign" style="font-size:13px;color:var(--accent);"></div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <a href="community-profile.html" class="btn-primary" style="text-decoration:none;">Edit Profile</a>
+                <a href="community-map.html" class="btn-secondary" style="text-decoration:none;">Community Map</a>
+                <a href="community-contacts.html" class="btn-secondary" style="text-decoration:none;">Contacts</a>
+                <a href="community-groups.html" class="btn-secondary" style="text-decoration:none;">Groups</a>
+                <a href="community-invites.html" class="btn-secondary" style="text-decoration:none;" id="invitesBtn">Invites</a>
+                <button class="btn-danger" onclick="doLogout()">Sign Out</button>
+            </div>
+        </div>
+
+        <div class="add-form" style="max-width:520px;">
+            <h3>My Radio Profile</h3>
+            <div id="profileDetails" style="font-size:14px;line-height:2;color:var(--text-secondary);"></div>
+        </div>
+
+        <div class="add-form" style="max-width:520px;margin-top:12px;">
+            <div id="memberStats" style="font-size:13px;color:var(--text-muted);"></div>
+        </div>
+    </div>
+
+    <!-- TABS: LOGIN / REGISTER -->
+    <div id="authForms">
+        <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);">
+            <button id="tabLogin" onclick="showTab('login')" style="flex:1;padding:12px;background:none;border:none;border-bottom:3px solid var(--accent);color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:-2px;">Sign In</button>
+            <button id="tabRegister" onclick="showTab('register')" style="flex:1;padding:12px;background:none;border:none;color:var(--text-muted);font-size:15px;cursor:pointer;">Join RPN</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="formLogin" class="add-form" style="max-width:520px;">
+            <div class="form-row">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-row">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Password">
+            </div>
+            <div id="loginError" style="display:none;color:var(--red);font-size:13px;margin-top:8px;"></div>
+            <div id="loginStatus" style="display:none;color:var(--accent);font-size:13px;margin-top:8px;"></div>
+            <div style="margin-top:16px;">
+                <button class="btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:12px;">Forgot your password? Contact Lewis or your admin &mdash; they can reset it for you from the admin panel.</p>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="formRegister" class="add-form" style="max-width:520px;display:none;">
+            <p class="form-hint" style="margin-bottom:16px;">Already have an RPN callsign? Enter it below. New to RPN? Leave it blank and contact Lewis to request one.</p>
+            <div class="form-row">
+                <label>Full Name *</label>
+                <input type="text" id="regName" placeholder="Your name">
+            </div>
+            <div class="form-row">
+                <label>Email *</label>
+                <input type="email" id="regEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-row">
+                <label>Password *</label>
+                <input type="password" id="regPassword" placeholder="Choose a password">
+            </div>
+            <div class="form-row">
+                <label>Your Callsign</label>
+                <input type="text" id="regCallsign" placeholder="e.g. M0ABC, CB001, RPN-UK-047">
+            </div>
+            <div class="form-row">
+                <label>Region / County</label>
+                <input type="text" id="regRegion" placeholder="e.g. Dorset, West Yorkshire">
+            </div>
+            <div class="form-row">
+                <label>Country</label>
+                <input type="text" id="regCountry" placeholder="e.g. England, Scotland, Wales">
+            </div>
+            <div class="form-row">
+                <label>Radios <span style="font-size:11px;color:var(--text-muted);font-weight:400;">— tick all you have</span></label>
+                <div id="regRadiosBoxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:4px;"></div>
+            </div>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.6;">No licence? Tick PMR446 (walkie-talkies, no licence needed) and/or CB (27MHz, no licence in UK). Licenced hams can also tick VHF, HF, etc.</p>
+            <div class="form-row">
+                <label>Frequencies / Channels</label>
+                <input type="text" id="regFrequencies" placeholder="e.g. PMR Ch2, 27.555 CB, 145.500 FM">
+            </div>
+            <div class="form-row">
+                <label>Active Hours <span style="font-size:11px;color:var(--text-muted);font-weight:400;">— when to reach you</span></label>
+                <input type="text" id="regActiveHours" placeholder="e.g. Evenings 7pm-10pm GMT">
+            </div>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.6;">This tells other members when you are likely to be monitoring your radio. Shown on your community profile.</p>
+            <div id="regError" style="display:none;color:var(--red);font-size:13px;margin-top:8px;"></div>
+            <div style="margin-top:16px;">
+                <button class="btn-primary" onclick="doRegister()" id="regBtn">Create Account</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Accept live contact modal -->
+<div class="accept-modal" id="acceptModal">
+    <div class="accept-modal-inner">
+        <h3 style="margin:0 0 8px;">Accept Live Contact</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 14px;">Set your location for this contact &mdash; only used for this session, not saved to your profile.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="btn-primary" style="flex:1;margin:0;padding:9px;font-size:13px;" onclick="useGpsAccept()">&#128204; Use GPS</button>
+            <button class="btn-cancel" style="flex:1;margin:0;padding:9px;font-size:13px;" onclick="document.getElementById('acceptPickerMap').parentElement.style.display=''">&#128506; Pick on Map</button>
+        </div>
+        <div id="acceptLocStatus" style="font-size:12px;color:var(--accent);min-height:16px;margin-bottom:8px;"></div>
+        <div style="display:none;">
+            <div id="acceptPickerMap" style="height:180px;border-radius:8px;overflow:hidden;margin-bottom:10px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn-primary" style="flex:1;margin:0;padding:10px;" onclick="confirmAcceptLiveReq()">Confirm Accept</button>
+            <button class="btn-cancel" style="margin:0;padding:10px;" onclick="document.getElementById('acceptModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script src="js/leaflet.js"></script>
+<script>
+const RADIO_OPTIONS = [
+    'CB', 'PMR446', 'Ham HF', 'Ham VHF/UHF', 'DMR', 'D-STAR',
+    'System Fusion (C4FM)', 'MeshCore', 'LoRa/Meshtastic', 'APRS',
+    'GMRS/FRS', 'Marine VHF', 'Airband', 'TETRA',
+    'Shortwave (RX)', 'MW/AM (RX)'
+];
+
+function buildRegRadios() {
+    document.getElementById('regRadiosBoxes').innerHTML = RADIO_OPTIONS.map(opt => `
+        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text);cursor:pointer;">
+            <input type="checkbox" value="${opt}" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;">
+            ${opt}
+        </label>`).join('');
+}
+
+function getRegRadios() {
+    return Array.from(document.querySelectorAll('#regRadiosBoxes input:checked'))
+        .map(cb => cb.value).join(', ');
+}
+
+function init() {
+    renderNav('more');
+    registerPushNotifications();
+    buildRegRadios();
+    if (communityToken()) {
+        showLoggedIn();
+        return;
+    }
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    if (mode === 'register') showTab('register');
+    else showTab('login');
+}
+
+function showTab(tab) {
+    document.getElementById('formLogin').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('formRegister').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('tabLogin').style.color       = tab === 'login'    ? 'var(--accent)' : 'var(--text-muted)';
+    document.getElementById('tabRegister').style.color    = tab === 'register' ? 'var(--accent)' : 'var(--text-muted)';
+    document.getElementById('tabLogin').style.borderBottom    = tab === 'login'    ? '3px solid var(--accent)' : 'none';
+    document.getElementById('tabRegister').style.borderBottom = tab === 'register' ? '3px solid var(--accent)' : 'none';
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPassword').value;
+    if (!email || !pass) { showError('loginError', 'Email and password required.'); return; }
+    const btn = document.getElementById('loginBtn');
+    const status = document.getElementById('loginStatus');
+    document.getElementById('loginError').style.display = 'none';
+    btn.textContent = 'Signing in...'; btn.disabled = true;
+    status.textContent = 'Connecting to server &mdash; this can take up to 30 seconds if the server is waking up...';
+    status.style.display = '';
+    try {
+        await communityLogin(email, pass);
+        status.textContent = 'Fetching your profile...';
+        await communityGetMe();
+        status.style.display = 'none';
+        showLoggedIn();
+        registerPushNotifications();
+    } catch(e) {
+        status.style.display = 'none';
+        showError('loginError', e.message);
+    } finally {
+        btn.textContent = 'Sign In'; btn.disabled = false;
+    }
+}
+
+async function doRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass  = document.getElementById('regPassword').value;
+    if (!name || !email || !pass) { showError('regError', 'Name, email and password are required.'); return; }
+    const btn = document.getElementById('regBtn');
+    btn.textContent = 'Creating...'; btn.disabled = true;
+    try {
+        await communityRegister({
+            name, email, password: pass,
+            callsign:     document.getElementById('regCallsign').value.trim() || null,
+            region:       document.getElementById('regRegion').value.trim() || null,
+            country:      document.getElementById('regCountry').value.trim() || null,
+            radios:       getRegRadios() || null,
+            frequencies:  document.getElementById('regFrequencies').value.trim() || null,
+            active_hours: document.getElementById('regActiveHours').value.trim() || null,
+        });
+        await communityLogin(email, pass);
+        await communityGetMe();
+        showLoggedIn();
+        registerPushNotifications();
+        document.getElementById('welcomePanel').style.display = '';
+    } catch(e) {
+        showError('regError', e.message);
+    } finally {
+        btn.textContent = 'Create Account'; btn.disabled = false;
+    }
+}
+
+async function loadMemberStats() {
+    try {
+        const members = await communityGetMembers();
+        const total = members.length;
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const active = members.filter(m => new Date(m.last_seen) > weekAgo).length;
+        document.getElementById('memberStats').innerHTML =
+            `&#127758; <strong style="color:var(--text);">${total}</strong> members &nbsp;·&nbsp; <strong style="color:var(--accent);">${active}</strong> active this week`;
+    } catch(e) {}
+}
+
+async function loadLiveRequestsBanner() {
+    try {
+        const requests = await communityGetPendingLiveRequests();
+        const existing = document.getElementById('liveReqBanner');
+        if (existing) existing.remove();
+        if (!requests.length) return;
+        const banner = document.createElement('div');
+        banner.id = 'liveReqBanner';
+        banner.style.cssText = 'margin:10px 0;';
+        banner.innerHTML = requests.map(r => `
+            <div style="background:#ff6b3511;border-left:3px solid #ff6b35;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:600;color:#ff6b35;">&#128204;¡ Live Contact Request</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${escHtml(r.requester_name)} (${escHtml(r.requester_callsign || '""')}) wants to show your QSO live on the map</div>
+                ${r.frequency ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">&#128204;» ${escHtml(r.frequency)}${r.mode ? ' · ' + escHtml(r.mode) : ''}</div>` : ''}
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="btn-primary" style="flex:1;margin:0;padding:8px;" onclick="acceptLiveReq(${r.id})">Accept</button>
+                    <button class="btn-cancel" style="margin:0;padding:8px;" onclick="declineLiveReq(${r.id})">Decline</button>
+                </div>
+            </div>`).join('');
+        document.getElementById('loggedIn').prepend(banner);
+    } catch(e) { /* offline */ }
+}
+
+let pendingAcceptId = null;
+let acceptPickerMap = null;
+let acceptPickerMarker = null;
+let acceptLat = null;
+let acceptLng = null;
+
+function showAcceptPicker(id) {
+    pendingAcceptId = id;
+    acceptLat = null; acceptLng = null;
+    document.getElementById('acceptModal').style.display = 'flex';
+    setTimeout(() => {
+        if (acceptPickerMap) { acceptPickerMap.invalidateSize(); return; }
+        acceptPickerMap = L.map('acceptPickerMap').setView([54, -2], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(acceptPickerMap);
+        acceptPickerMap.on('click', function(e) {
+            if (acceptPickerMarker) acceptPickerMarker.remove();
+            acceptPickerMarker = L.marker(e.latlng).addTo(acceptPickerMap);
+            acceptLat = e.latlng.lat;
+            acceptLng = e.latlng.lng;
+            document.getElementById('acceptLocStatus').textContent = '&#128204; ' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+        });
+    }, 150);
+}
+
+function useGpsAccept() {
+    document.getElementById('acceptLocStatus').textContent = 'Getting GPS...';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            acceptLat = pos.coords.latitude;
+            acceptLng = pos.coords.longitude;
+            document.getElementById('acceptLocStatus').textContent = '&#128204; GPS: ' + acceptLat.toFixed(4) + ', ' + acceptLng.toFixed(4);
+            if (acceptPickerMarker) acceptPickerMarker.remove();
+            if (acceptPickerMap) {
+                acceptPickerMarker = L.marker([acceptLat, acceptLng]).addTo(acceptPickerMap);
+                acceptPickerMap.setView([acceptLat, acceptLng], 10);
+            }
+        },
+        () => { document.getElementById('acceptLocStatus').textContent = 'GPS unavailable &mdash; pick on map.'; }
+    );
+}
+
+async function confirmAcceptLiveReq() {
+    if (!acceptLat || !acceptLng) { alert('Please set your location first.'); return; }
+    try {
+        await communityAcceptLiveRequest(pendingAcceptId, acceptLat, acceptLng);
+        document.getElementById('acceptModal').style.display = 'none';
+        await loadLiveRequestsBanner();
+    } catch(e) { alert(e.message); }
+}
+
+async function acceptLiveReq(id) {
+    showAcceptPicker(id);
+}
+async function declineLiveReq(id) {
+    try { await communityDeclineLiveRequest(id); await loadLiveRequestsBanner(); } catch(e) { alert(e.message); }
+}
+
+async function showLoggedIn() {
+    document.getElementById('authForms').style.display = 'none';
+    document.getElementById('loggedIn').style.display  = '';
+    let user = communityUser();
+    if (!user) user = await communityGetMe();
+    loadLiveRequestsBanner();
+    loadMemberStats();
+    document.getElementById('profileName').textContent = user.name || '';
+    document.getElementById('avatarInitial').textContent = (user.name || '?')[0].toUpperCase();
+    const cs = [user.rpn_callsign, user.callsign].filter(Boolean).join(' / ');
+    document.getElementById('profileCallsign').textContent = cs || 'No callsign set';
+    const details = [
+        user.region   ? '&#128204; ' + user.region + (user.country ? ', ' + user.country : '') : null,
+        user.radios   ? '&#128204;» ' + user.radios : null,
+        user.frequencies ? '&#12336; ' + user.frequencies : null,
+        user.active_hours ? '&#128336; ' + user.active_hours : null,
+        user.bio      ? '"' + user.bio + '"' : null,
+    ].filter(Boolean).join('<br>');
+    document.getElementById('profileDetails').innerHTML = details || '<span style="color:var(--text-muted)">No profile details yet. <a href="community-profile.html">Add them now &rarr;</a></span>';
+}
+
+function doLogout() {
+    if (!confirm('Sign out of RPN Community?')) return;
+    communityLogout();
+    document.getElementById('authForms').style.display = '';
+    document.getElementById('loggedIn').style.display  = 'none';
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = '';
+}
+
+init();
+</script>
+</body>
+</html>
+

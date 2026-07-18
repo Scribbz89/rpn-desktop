@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Drills</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .drill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 15px; margin-bottom: 30px; }
+        .drill-card { background: #1a2018; border: 1px solid #2e3d2c; border-radius: 8px; padding: 18px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 8px; transition: border-color .15s; }
+        .drill-card:hover { border-color: #6dbf5a; }
+        .drill-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .drill-icon { font-size: 28px; line-height: 1; }
+        .drill-category { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #4a5e48; background: #141c12; padding: 3px 8px; border-radius: 3px; }
+        .drill-name { font-size: 15px; font-weight: bold; color: #d4d9d4; }
+        .drill-desc { font-size: 12px; color: #7a8f78; line-height: 1.5; }
+        .drill-meta { display: flex; gap: 12px; font-size: 11px; color: #4a5e48; margin-top: 4px; flex-wrap: wrap; }
+        .drill-meta span { display: flex; align-items: center; gap: 4px; }
+        .drill-last { font-size: 11px; }
+        .drill-last.ready { color: #6dbf5a; }
+        .drill-last.needs-work { color: #d4a017; }
+        .drill-last.failed { color: #c0392b; }
+        .drill-last.never { color: #4a5e48; }
+        .drill-card-actions { display: flex; gap: 8px; margin-top: 6px; }
+        .btn-run { flex: 1; background: #3a5c2e; border: none; color: #d4d9d4; padding: 10px; border-radius: 5px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: inherit; text-align: center; text-decoration: none; display: block; }
+        .btn-run:hover { background: #6dbf5a; color: #0f1210; }
+        .btn-edit-drill { background: none; border: 1px solid #2e3d2c; color: #7a8f78; padding: 10px 14px; border-radius: 5px; font-size: 12px; cursor: pointer; font-family: inherit; }
+        .btn-edit-drill:hover { border-color: #6dbf5a; color: #6dbf5a; }
+        .log-table { width: 100%; border-collapse: collapse; }
+        .log-table th { text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6dbf5a; background: #141c12; }
+        .log-table td { padding: 10px 12px; border-top: 1px solid #1f2b1d; font-size: 13px; }
+        .rating-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .rating-badge.ready { background: #2e3d2c; color: #6dbf5a; }
+        .rating-badge.needs-work { background: #2e1a0a; color: #d4a017; }
+        .rating-badge.failed { background: #2e1a1a; color: #c0392b; }
+        .recency-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-top: 2px; }
+        .recency-badge.full { background: #1a2e1a; color: #6dbf5a; }
+        .recency-badge.partial { background: #2e1a0a; color: #d4a017; }
+        .recency-badge.review { background: #2e1a1a; color: #c0392b; }
+        .recency-badge.never { background: #141c12; color: #4a5e48; }
+        .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div id="pageContent"></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+let _builtins = [];
+
+function init() {
+    renderNav('drills');
+    loadJSON('data/drills.json').then(data => {
+        _builtins = data;
+        renderPage();
+    }).catch(() => { _builtins = []; renderPage(); });
+}
+
+function renderPage() {
+    const drillData = loadDrillData();
+    const custom = drillData.custom || [];
+    const log = drillData.log || [];
+    const allDrills = [..._builtins, ...custom];
+
+    // Group builtins by category
+    const groups = {};
+    _builtins.forEach(d => {
+        const cat = d.category || 'General';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(d);
+    });
+
+    let drillsHtml = '';
+    for (const [cat, drills] of Object.entries(groups)) {
+        drillsHtml += `<h3 style="margin-bottom:12px;">${escHtml(cat)}</h3>
+        <div class="drill-grid">`;
+        drills.forEach(d => { drillsHtml += drillCard(d, false); });
+        drillsHtml += `</div>`;
+    }
+
+    if (custom.length > 0) {
+        drillsHtml += `<h3 style="margin-bottom:12px;">My Custom Drills</h3><div class="drill-grid">`;
+        custom.forEach(d => { drillsHtml += drillCard(d, true); });
+        drillsHtml += `</div>`;
+    }
+
+    // Log
+    const logHtml = log.length === 0 ? '<p class="empty">No drills completed yet. Run your first drill above.</p>' :
+        `<div class="table-scroll"><table class="log-table">
+            <thead><tr><th>Drill</th><th>Date</th><th>Time</th><th>Steps</th><th>Rating</th></tr></thead>
+            <tbody>${log.slice(0,20).map(e => `<tr>
+                <td>${escHtml(e.drill_name)}</td>
+                <td>${escHtml(e.date)}</td>
+                <td>${formatDrillTime(e.time_taken)}</td>
+                <td>${e.steps_completed}/${e.steps_total}</td>
+                <td><span class="rating-badge ${e.rating}">${escHtml(e.rating.replace('-',' '))}</span></td>
+            </tr>`).join('')}</tbody>
+        </table></div>`;
+
+    document.getElementById('pageContent').innerHTML = `
+        <div class="section-head">
+            <h2 style="margin:0;">Drills</h2>
+            <button class="btn-primary" style="margin:0;" onclick="newCustomDrill()">+ Custom Drill</button>
+        </div>
+        <p class="form-hint" style="margin-bottom:8px;">Run a drill to test your real-world readiness. Every step is editable — personalise them to match your actual setup, location and equipment.</p>
+        <p class="form-hint" style="margin-bottom:24px;">
+            <span style="color:#6dbf5a;font-weight:600;">Full credit</span> = run within 90 days &nbsp;·&nbsp;
+            <span style="color:#d4a017;font-weight:600;">Partial credit</span> = run within 6 months &nbsp;·&nbsp;
+            <span style="color:#c0392b;font-weight:600;">Review recommended</span> = run over 6 months ago
+        </p>
+        ${drillsHtml}
+        <div style="margin-top:30px;">
+            <div class="section-head"><h2 style="margin:0;">Drill Log</h2></div>
+            <p class="form-hint" style="margin-bottom:14px;">
+                <span style="color:#6dbf5a;font-weight:600;">Ready</span> = all steps completed within the target time &nbsp;·&nbsp;
+                <span style="color:#d4a017;font-weight:600;">Needs Work</span> = 70%+ steps done (or over time) &nbsp;·&nbsp;
+                <span style="color:#c0392b;font-weight:600;">Failed</span> = fewer than 70% of steps completed
+            </p>
+            ${logHtml}
+        </div>
+    `;
+}
+
+const FREQ_CYCLE = [0, 7, 14, 30, 60, 90];
+const FREQ_LABELS = { 0:'Set reminder', 7:'Weekly', 14:'Fortnightly', 30:'Monthly', 60:'Every 2 months', 90:'Quarterly' };
+
+function cycleFrequency(drillId) {
+    const current = getDrillFrequency(drillId);
+    const idx = FREQ_CYCLE.indexOf(current);
+    const next = FREQ_CYCLE[(idx + 1) % FREQ_CYCLE.length];
+    setDrillFrequency(drillId, next);
+    renderPage();
+}
+
+function drillCard(d, isCustom) {
+    const last = getLastDrillRun(d.id);
+    const targetTime = getDrillTargetTime(d);
+    const steps = getDrillSteps(d);
+    const name = getDrillName(d);
+
+    const recency = getDrillRecencyLevel(d.id);
+    const recencyLabels = { full: 'Full credit', partial: 'Partial credit', review: 'Review recommended', never: 'Not yet run' };
+
+    const freq = getDrillFrequency(d.id);
+    const reminderStatus = getDrillReminderStatus(d.id);
+
+    let lastHtml = '';
+    if (last) {
+        lastHtml = `<span class="drill-last ${last.rating}">Last run: ${formatDrillTime(last.time_taken)} &mdash; ${last.rating.replace('-',' ')}</span>`;
+    } else {
+        lastHtml = `<span class="drill-last never">Never run</span>`;
+    }
+
+    let reminderBadge = '';
+    if (freq && reminderStatus === 'overdue') {
+        reminderBadge = `<span style="font-size:11px;color:#c0392b;font-weight:700;">&#9888; Overdue &mdash; due every ${FREQ_LABELS[freq].toLowerCase()}</span>`;
+    } else if (freq && reminderStatus === 'due') {
+        reminderBadge = `<span style="font-size:11px;color:#d4a017;font-weight:700;">&#9650; Due soon &mdash; ${FREQ_LABELS[freq].toLowerCase()}</span>`;
+    }
+
+    const freqColor = freq === 0 ? '#3a4a3a' : (reminderStatus === 'overdue' ? '#c0392b' : reminderStatus === 'due' ? '#d4a017' : '#6dbf5a');
+    const freqPill = `<button onclick="cycleFrequency('${escHtml(d.id)}')" style="background:none;border:1px solid ${freqColor};border-radius:20px;color:${freqColor};font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;white-space:nowrap;" title="Tap to change reminder frequency">${freq === 0 ? '&#9711; Set reminder' : '&#9201; ' + FREQ_LABELS[freq]}</button>`;
+
+    return `<div class="drill-card">
+        <div class="drill-card-top">
+            <span class="drill-icon">${escHtml(d.icon || '!')}</span>
+            <span class="drill-category">${escHtml(d.category || '')}</span>
+        </div>
+        <div class="drill-name">${escHtml(name)}</div>
+        <div class="drill-desc">${escHtml(d.description || '')}</div>
+        <div class="drill-meta">
+            <span>&#9654; ${steps.length} steps</span>
+            <span>&#9679; Target: ${formatDrillTime(targetTime)}</span>
+        </div>
+        ${lastHtml}
+        <span class="recency-badge ${recency}">${recencyLabels[recency]}</span>
+        ${reminderBadge}
+        <div style="margin-top:4px;">${freqPill}</div>
+        <div class="drill-card-actions">
+            <a href="drill-run.html?id=${encodeURIComponent(d.id)}&custom=${isCustom?1:0}" class="btn-run">&#9654; Run Drill</a>
+            <button class="btn-edit-drill" onclick="editDrill('${escHtml(d.id)}', ${isCustom?1:0})">Edit</button>
+        </div>
+    </div>`;
+}
+
+function editDrill(id, isCustom) {
+    window.location.href = `drill-edit.html?id=${encodeURIComponent(id)}&custom=${isCustom}`;
+}
+
+function newCustomDrill() {
+    window.location.href = 'drill-edit.html?new=1';
+}
+
+init();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .member-card { background:var(--surface); border-radius:8px; padding:14px; margin-bottom:10px; }
+        .member-name { font-size:15px; font-weight:700; color:var(--text); }
+        .member-meta { font-size:12px; color:var(--text-muted); margin-top:2px; }
+        .badge { display:inline-block; border-radius:4px; padding:1px 7px; font-size:11px; font-weight:600; margin-left:4px; }
+        .badge-approved { background:#6dbf5a22; color:#6dbf5a; }
+        .badge-pending  { background:#d4a01722; color:#d4a017; }
+        .badge-inactive { background:#c0392b22; color:#c0392b; }
+        .badge-admin    { background:#7b68ee22; color:#7b68ee; }
+        .callsign-row { display:flex; gap:8px; margin-top:10px; align-items:center; }
+        .callsign-row input { flex:1; margin:0; padding:8px 10px; font-size:13px; }
+        .callsign-row button { margin:0; padding:8px 14px; font-size:13px; }
+        .action-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+        .action-btn { background:var(--bg); border:1px solid #2e3d2c; color:var(--text-muted); border-radius:5px; padding:5px 10px; font-size:12px; cursor:pointer; }
+        .action-btn:active { opacity:0.7; }
+        .stats-row { display:flex; gap:10px; margin-bottom:16px; }
+        .stat-box { flex:1; background:var(--surface); border-radius:8px; padding:12px; text-align:center; }
+        .stat-num { font-size:24px; font-weight:700; color:var(--accent); }
+        .stat-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="container" style="padding-bottom:80px;">
+    <div style="margin:12px 0 4px;"><a href="more.html" style="color:#6dbf5a;font-size:13px;">&#8592; More</a></div>
+    <h2 style="margin:8px 0 4px;">Admin Panel</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin:0 0 16px;">Issue RPN callsigns and manage members.</p>
+
+    <!-- Compose announcement -->
+    <div style="background:var(--surface);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <h3 style="margin:0 0 12px;">📢 Post Announcement</h3>
+        <input type="text" id="annTitle" placeholder="Title *" style="margin-bottom:8px;">
+        <textarea id="annBody" placeholder="Message body *" style="height:80px;margin-bottom:8px;"></textarea>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);flex:1;background:#0f1a0f;border:1px solid #2a4a2a;border-radius:6px;padding:10px;cursor:pointer;">
+                <input type="radio" name="annAudience" value="members" checked style="accent-color:var(--accent);"> Post + Push<br>
+                <span style="font-size:11px;color:var(--text-muted);margin-left:20px;">Visible to everyone, pings members</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);flex:1;background:#0f1a0f;border:1px solid #2a4a2a;border-radius:6px;padding:10px;cursor:pointer;">
+                <input type="radio" name="annAudience" value="public" style="accent-color:var(--accent);"> Post only<br>
+                <span style="font-size:11px;color:var(--text-muted);margin-left:20px;">Visible to everyone, no push</span>
+            </label>
+        </div>
+        <button class="btn-primary" style="margin:0;padding:10px 20px;" onclick="postAnnouncement()">Post Announcement</button>
+    </div>
+
+    <div class="stats-row" id="statsRow">
+        <div class="stat-box"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Members</div></div>
+        <div class="stat-box"><div class="stat-num" id="statApproved">—</div><div class="stat-label">Approved</div></div>
+        <div class="stat-box"><div class="stat-num" id="statPending">—</div><div class="stat-label">Pending</div></div>
+    </div>
+
+    <input type="text" id="searchInput" placeholder="Search by name, email, callsign..." oninput="onSearch()" style="margin-bottom:12px;">
+
+    <div id="memberList"></div>
+    <p id="emptyMsg" class="empty" style="display:none;">No members found.</p>
+    <p id="notAdminMsg" style="display:none;color:var(--text-muted);text-align:center;margin-top:40px;">You do not have admin access.</p>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+let allMembers = [];
+let searchTimeout = null;
+let currentUserIsAdmin = false;
+
+async function init() {
+    renderNav('admin');
+    registerPushNotifications();
+    if (!communityToken()) {
+        window.location.href = 'community-auth.html';
+        return;
+    }
+    const user = communityUser();
+    currentUserIsAdmin = user && user.is_admin;
+    await loadMembers();
+}
+
+async function loadMembers(q = '') {
+    try {
+        const url = '/admin/members' + (q ? '?q=' + encodeURIComponent(q) : '');
+        const res = await fetch(COMMUNITY_API + url, {
+            headers: { 'Authorization': 'Bearer ' + communityToken() }
+        });
+        if (res.status === 403) {
+            document.getElementById('notAdminMsg').style.display = '';
+            document.getElementById('statsRow').style.display = 'none';
+            document.getElementById('searchInput').style.display = 'none';
+            return;
+        }
+        allMembers = await res.json();
+        renderStats(allMembers);
+        renderMembers(allMembers);
+    } catch(e) {
+        document.getElementById('memberList').innerHTML = '<p class="empty">Could not load members.</p>';
+    }
+}
+
+function renderStats(members) {
+    document.getElementById('statTotal').textContent    = members.length;
+    document.getElementById('statApproved').textContent = members.filter(m => m.is_approved).length;
+    document.getElementById('statPending').textContent  = members.filter(m => !m.is_approved && m.is_active).length;
+}
+
+function renderMembers(members) {
+    const el = document.getElementById('memberList');
+    const empty = document.getElementById('emptyMsg');
+    if (!members.length) { el.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    el.innerHTML = members.map(m => {
+        const cs = m.rpn_callsign || '';
+        const joined = new Date(m.created_at).toLocaleDateString();
+        const lastSeen = new Date(m.last_seen).toLocaleDateString();
+        const badges = [
+            m.is_approved ? '<span class="badge badge-approved">Callsign Issued</span>' : '<span class="badge badge-pending">No Callsign</span>',
+            !m.is_active  ? '<span class="badge badge-inactive">Inactive</span>'  : '',
+            m.is_admin    ? '<span class="badge badge-admin">Admin</span>'         : '',
+            m.is_manager  ? '<span class="badge" style="background:#d4a01722;color:#d4a017;">Manager</span>' : '',
+        ].join('');
+        return `<div class="member-card" id="card-${m.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                    <span class="member-name">${escHtml(m.name)}</span>${badges}
+                    <div class="member-meta">${escHtml(m.email)}</div>
+                    ${m.callsign ? `<div class="member-meta">Personal: ${escHtml(m.callsign)}</div>` : ''}
+                    <div class="member-meta">${m.region || ''}${m.country ? ', '+m.country : ''} &mdash; Joined ${joined} &mdash; Last seen ${lastSeen}</div>
+                </div>
+            </div>
+            <div class="callsign-row">
+                <input type="text" id="cs-${m.id}" value="${escHtml(cs)}" placeholder="Issue RPN callsign (e.g. RPN-001)" maxlength="20">
+                <button class="btn-primary callsign-row" onclick="issueCallsign(${m.id})">Save</button>
+            </div>
+            <div class="action-row">
+                <button class="action-btn" onclick="toggleActive(${m.id})">${m.is_active ? 'Deactivate' : 'Reactivate'}</button>
+                <button class="action-btn" onclick="resetPassword(${m.id})">Reset Password</button>
+                ${currentUserIsAdmin ? `
+                <button class="action-btn" onclick="toggleManager(${m.id})">${m.is_manager ? 'Revoke Manager' : 'Make Manager'}</button>
+                <button class="action-btn" onclick="toggleAdmin(${m.id})">${m.is_admin ? 'Revoke Admin' : 'Make Admin'}</button>
+                ` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function onSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        loadMembers(document.getElementById('searchInput').value.trim());
+    }, 400);
+}
+
+async function issueCallsign(memberId) {
+    const callsign = document.getElementById('cs-' + memberId).value.trim();
+    try {
+        const res = await fetch(COMMUNITY_API + '/admin/members/' + memberId + '/callsign', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + communityToken() },
+            body: JSON.stringify({ rpn_callsign: callsign })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || 'Failed'); return; }
+        // Update local record and re-render that card
+        const idx = allMembers.findIndex(m => m.id === memberId);
+        if (idx > -1) { allMembers[idx] = { ...allMembers[idx], ...data }; }
+        renderStats(allMembers);
+        renderMembers(allMembers);
+        if (callsign) alert(`✓ ${callsign} issued — member notified.`);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleActive(memberId) {
+    try {
+        const res = await fetch(COMMUNITY_API + '/admin/members/' + memberId + '/toggle-active', {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + communityToken() }
+        });
+        const data = await res.json();
+        if (!res.ok) return;
+        const idx = allMembers.findIndex(m => m.id === memberId);
+        if (idx > -1) allMembers[idx].is_active = data.is_active;
+        renderStats(allMembers);
+        renderMembers(allMembers);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function postAnnouncement() {
+    const title    = document.getElementById('annTitle').value.trim();
+    const body     = document.getElementById('annBody').value.trim();
+    const isPublic = document.querySelector('input[name="annAudience"]:checked').value === 'public';
+    if (!title || !body) { alert('Title and message are required.'); return; }
+    try {
+        await communityPostAnnouncement(title, body, isPublic);
+        document.getElementById('annTitle').value = '';
+        document.getElementById('annBody').value  = '';
+        alert(isPublic ? '✓ Posted publicly — visible to all app users.' : '✓ Sent to all members with push notification.');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleManager(memberId) {
+    if (!confirm('Toggle manager status for this member?')) return;
+    try {
+        const res = await fetch(COMMUNITY_API + '/admin/members/' + memberId + '/make-manager', {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + communityToken() }
+        });
+        const data = await res.json();
+        if (!res.ok) return;
+        const idx = allMembers.findIndex(m => m.id === memberId);
+        if (idx > -1) allMembers[idx].is_manager = data.is_manager;
+        renderMembers(allMembers);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleAdmin(memberId) {
+    if (!confirm('Toggle admin status for this member?')) return;
+    try {
+        const res = await fetch(COMMUNITY_API + '/admin/members/' + memberId + '/make-admin', {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + communityToken() }
+        });
+        const data = await res.json();
+        if (!res.ok) return;
+        const idx = allMembers.findIndex(m => m.id === memberId);
+        if (idx > -1) allMembers[idx].is_admin = data.is_admin;
+        renderMembers(allMembers);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function resetPassword(memberId) {
+    if (!confirm('Generate a temporary password for this member?')) return;
+    try {
+        const data = await communityAdminResetPassword(memberId);
+        alert(`Temporary password for ${data.name} (${data.email}):\n\n${data.temp_password}\n\nSend this to them directly — they should change it after logging in.`);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
+

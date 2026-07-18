@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Stocktake</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .audit-card { background:#1a2a1a;border:1px solid #2a4a2a;border-radius:12px;padding:18px;margin-bottom:12px; }
+        .audit-item-card { background:#131f13;border:1px solid #2a4a2a;border-radius:12px;padding:20px;margin-bottom:0; }
+        .audit-btn { width:100%;padding:14px;border-radius:8px;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit; }
+        .audit-btn-good  { background:#2a4a1a;color:#6dbf5a; }
+        .audit-btn-adj   { background:#2e1a0a;color:#d4a017; }
+        .audit-btn-gone  { background:#2e1a1a;color:#c0392b; }
+        .cat-badge { display:inline-block;font-size:10px;padding:3px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:1px; }
+        .cat-badge.ok       { background:#1a2e1a;color:#6dbf5a; }
+        .cat-badge.due      { background:#2e1a0a;color:#d4a017; }
+        .cat-badge.overdue  { background:#2e1a1a;color:#c0392b; }
+        .cat-badge.never    { background:#141c12;color:#4a5e48; }
+        .cat-row { display:flex;align-items:center;justify-content:space-between;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer; }
+        .cat-row:active { background:#223322; }
+        .freq-pill { display:inline-block;padding:6px 14px;border-radius:20px;border:1px solid #2a4a2a;background:#1a2a1a;color:#d4d9d4;font-size:13px;cursor:pointer; }
+        .freq-pill.active { background:#3a6a2a;border-color:#6dbf5a;color:#fff;font-weight:700; }
+        .progress-bar-track { background:#0f1a0f;border-radius:4px;height:6px;overflow:hidden;margin-bottom:16px; }
+        .progress-bar-fill  { height:100%;background:#6dbf5a;border-radius:4px;transition:width 0.3s; }
+        .adj-row { display:flex;align-items:center;gap:10px;margin-top:12px; }
+        .adj-row input { flex:1;background:#0f1a0f;border:1px solid #3a5a2a;border-radius:6px;color:#d4d9d4;padding:10px;font-size:15px;font-family:inherit; }
+        .adj-row button { background:#3a6a2a;color:#fff;border:none;border-radius:6px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit; }
+    </style>
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+<div style="margin-bottom:12px;"><a href="stockpile.html" style="color:#6dbf5a;font-size:13px;">&#8592; Stockpile</a></div>
+<div id="audit-root"></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+var _screen = 'landing';   // landing | picker | frequency | flow | done
+var _category = null;
+var _items = [];
+var _idx = 0;
+var _changes = {};         // id -> { qty, gone }
+var _addedNames = [];
+var _startDate = null;
+var _pendingAdj = false;
+
+var AUDIT_CATS = ['Food','Water','Medical','Power','Communications','Fuel','Tools','Clothing','Documents','Pet Food','Other'];
+
+var CAT_ICONS = {
+    Food:'&#127827;', Water:'&#128167;', Medical:'&#128138;', Power:'&#9889;',
+    Communications:'&#128251;', Fuel:'&#9981;', Tools:'&#128295;',
+    Clothing:'&#128085;', Documents:'&#128196;', 'Pet Food':'&#128062;', Other:'&#128218;'
+};
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+function statusLabel(st) {
+    if (st==='ok')      return '<span class="cat-badge ok">Up to date</span>';
+    if (st==='due')     return '<span class="cat-badge due">Due soon</span>';
+    if (st==='overdue') return '<span class="cat-badge overdue">Overdue</span>';
+    return '<span class="cat-badge never">Never audited</span>';
+}
+
+function lastAuditLabel(category) {
+    const s = loadStocktakeSchedule()[category];
+    if (!s || !s.lastDate) return '';
+    const days = daysSince(s.lastDate);
+    return '<div style="font-size:11px;color:#4a5e48;margin-top:3px;">Last: ' + days + ' days ago &middot; every ' + (s.frequency||90) + ' days</div>';
+}
+
+// ── Screens ──────────────────────────────────────────────────────────────────
+
+function renderLanding() {
+    const draft = loadStocktakeDraft();
+    let html = '<h2 style="margin:0 0 6px;">Stocktake</h2>'
+        + '<p style="font-size:13px;color:#7a8f78;margin:0 0 12px;">A stocktake walks you through your supplies one item at a time so you can confirm what you actually have, update quantities, and remove anything you\'ve used.</p>'
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:12px 14px;margin-bottom:20px;">'
+        + '<div style="font-size:12px;color:#6dbf5a;font-weight:700;margin-bottom:6px;">How it works</div>'
+        + '<div style="font-size:12px;color:#7a8f78;line-height:1.7;">'
+        + '1. Pick a section (e.g. Food, Water, Medical)<br>'
+        + '2. The app shows each item one at a time<br>'
+        + '3. Tap <strong style="color:#6dbf5a;">Still have it</strong>, <strong style="color:#d4a017;">Quantity changed</strong>, or <strong style="color:#c0392b;">Used / gone</strong><br>'
+        + '4. Your stockpile updates as you go<br>'
+        + '5. You can exit and continue later — your progress is saved'
+        + '</div>'
+        + '</div>';
+
+    if (draft) {
+        const done = draft.currentIndex;
+        const total = draft.items.length;
+        html += '<div class="audit-card" style="margin-bottom:20px;border-color:#3a6a2a;">'
+            + '<div style="font-size:13px;color:#d4a017;font-weight:700;margin-bottom:4px;">&#9654; Audit in progress</div>'
+            + '<div style="font-size:14px;color:#d4d9d4;margin-bottom:8px;">' + (CAT_ICONS[draft.category]||'') + ' ' + escHtml(draft.category) + '</div>'
+            + '<div class="progress-bar-track"><div class="progress-bar-fill" style="width:' + Math.round(done/total*100) + '%;"></div></div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-bottom:12px;">' + done + ' of ' + total + ' items checked — tap Continue to pick up where you left off</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+            + '<button class="audit-btn audit-btn-good" onclick="resumeDraft()">Continue &#8594;</button>'
+            + '<button class="audit-btn" style="background:#1a2a1a;color:#c0392b;" onclick="discardDraft()">Discard</button>'
+            + '</div></div>';
+    }
+
+    html += '<button class="audit-btn" style="background:#3a6a2a;color:#fff;margin-bottom:12px;" onclick="showPicker()">+ Start new stocktake</button>';
+    document.getElementById('audit-root').innerHTML = html;
+}
+
+function renderPicker() {
+    const items = loadStockpile();
+    let html = '<h2 style="margin:0 0 4px;">Which section?</h2>'
+        + '<p style="font-size:13px;color:#7a8f78;margin:0 0 8px;">Pick one category to audit now. You can do others separately — short sessions are better than trying to do everything at once.</p>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;font-size:11px;color:#4a5e48;">'
+        + '<span style="background:#1a2e1a;color:#6dbf5a;padding:3px 8px;border-radius:4px;font-weight:700;">&#9679; Up to date</span>'
+        + '<span style="background:#2e1a0a;color:#d4a017;padding:3px 8px;border-radius:4px;font-weight:700;">&#9679; Due soon</span>'
+        + '<span style="background:#2e1a1a;color:#c0392b;padding:3px 8px;border-radius:4px;font-weight:700;">&#9679; Overdue</span>'
+        + '<span style="background:#141c12;color:#4a5e48;padding:3px 8px;border-radius:4px;font-weight:700;">&#9679; Never done</span>'
+        + '</div>';
+
+    let hasCats = false;
+    AUDIT_CATS.forEach(function(cat) {
+        const catItems = items.filter(function(i){ return (i.category||'Other')===cat; });
+        if (catItems.length === 0) return;
+        hasCats = true;
+        const st = getStocktakeStatus(cat);
+        html += '<div class="cat-row" onclick="selectCategory(\'' + cat + '\')">'
+            + '<div>'
+            + '<div style="font-size:14px;color:#d4d9d4;font-weight:600;">' + (CAT_ICONS[cat]||'') + ' ' + escHtml(cat) + '</div>'
+            + '<div style="font-size:12px;color:#7a8f78;margin-top:2px;">' + catItems.length + ' item' + (catItems.length!==1?'s':'') + ' to check</div>'
+            + lastAuditLabel(cat)
+            + '</div>'
+            + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
+            + statusLabel(st)
+            + '<span style="color:#6dbf5a;font-size:18px;">&#8250;</span>'
+            + '</div>'
+            + '</div>';
+    });
+
+    if (!hasCats) {
+        html += '<p style="color:#7a8f78;font-size:13px;">No stockpile items found. <a href="stockpile.html" style="color:#6dbf5a;">Add items to your stockpile</a> first.</p>';
+    }
+
+    document.getElementById('audit-root').innerHTML = html;
+}
+
+function renderFrequency(category) {
+    const schedule = loadStocktakeSchedule();
+    const current = (schedule[category] && schedule[category].frequency) || 90;
+    const opts = [30, 60, 90, 180];
+    const labels = { 30:'Monthly', 60:'Every 2 months', 90:'Quarterly', 180:'Every 6 months' };
+
+    let pills = opts.map(function(f){
+        return '<span class="freq-pill' + (current===f?' active':'') + '" onclick="setFrequency(' + f + ')">' + labels[f] + '</span>';
+    }).join('');
+
+    document.getElementById('audit-root').innerHTML = '<h2 style="margin:0 0 4px;">' + (CAT_ICONS[category]||'') + ' ' + escHtml(category) + '</h2>'
+        + '<p style="font-size:13px;color:#7a8f78;margin:0 0 12px;">How often do you want to be reminded to check this section?</p>'
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#7a8f78;line-height:1.7;">'
+        + 'The app will flag this section as <strong style="color:#d4a017;">Due soon</strong> as you approach the date, and <strong style="color:#c0392b;">Overdue</strong> once the interval has passed. '
+        + 'Food and water are best checked quarterly. Medical and medications monthly if you have active prescriptions.'
+        + '</div>'
+        + '<div id="freq-pills" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;">' + pills + '</div>'
+        + '<button class="audit-btn" style="background:#3a6a2a;color:#fff;" onclick="startAudit()">Begin audit &#8594;</button>';
+}
+
+function renderFlow() {
+    if (_idx >= _items.length) { renderDone(); return; }
+    const item = _items[_idx];
+    const total = _items.length;
+    const pct = Math.round(_idx / total * 100);
+    const change = _changes[item.id] || {};
+
+    let qtyDisplay = escHtml(item.quantity || '');
+    if (item.weight_g) {
+        if (item.category === 'Water') qtyDisplay += (qtyDisplay?' &middot; ':'') + (Number(item.weight_g)/1000) + 'L';
+        else qtyDisplay += (qtyDisplay?' &middot; ':'') + item.weight_g + 'g';
+    }
+
+    let adjHtml = '';
+    if (_pendingAdj) {
+        adjHtml = '<div style="margin-top:16px;border-top:1px solid #1a2a1a;padding-top:14px;">'
+            + '<div style="font-size:13px;color:#d4a017;margin-bottom:8px;">Update quantity:</div>'
+            + '<div class="adj-row">'
+            + '<input type="text" id="adj-qty" placeholder="e.g. 2 bags" value="' + escHtml(change.qty || item.quantity || '') + '">'
+            + '<button onclick="confirmAdj()">Save</button>'
+            + '</div></div>';
+    }
+
+    document.getElementById('audit-root').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+        + '<div style="font-size:12px;color:#7a8f78;">' + escHtml(_category) + ' &middot; ' + (_idx+1) + ' of ' + total + '</div>'
+        + '<button onclick="skipItem()" style="background:none;border:none;color:#4a5e48;font-size:12px;cursor:pointer;" title="Skip this item — it stays unchanged">Skip</button>'
+        + '</div>'
+        + '<div class="progress-bar-track"><div class="progress-bar-fill" style="width:' + pct + '%;"></div></div>'
+        + '<div class="audit-item-card">'
+        + '<div style="font-size:11px;color:#4a5e48;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Go and physically check this item</div>'
+        + '<div style="font-size:17px;font-weight:700;color:#d4d9d4;margin-bottom:4px;">' + escHtml(item.name) + '</div>'
+        + (item.location ? '<div style="font-size:12px;color:#4a5e48;margin-bottom:6px;">&#128205; ' + escHtml(item.location) + '</div>' : '<div style="font-size:12px;color:#3a4a3a;margin-bottom:6px;">No location set</div>')
+        + '<div style="font-size:13px;color:#7a8f78;">Recorded: ' + (qtyDisplay || 'no quantity set') + '</div>'
+        + adjHtml
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">'
+        + '<button class="audit-btn audit-btn-good" onclick="markGood()">&#10003;&nbsp; Still have it &mdash; quantity is correct</button>'
+        + '<button class="audit-btn audit-btn-adj"  onclick="markAdjust()">&#9998;&nbsp; Quantity changed &mdash; update the amount</button>'
+        + '<button class="audit-btn audit-btn-gone" onclick="markGone()">&#10005;&nbsp; Used or gone &mdash; remove from stockpile</button>'
+        + '</div>'
+        + '<p style="font-size:11px;color:#3a4a3a;text-align:center;margin-top:10px;">Tap Skip if you can\'t check this item right now &mdash; it stays unchanged.</p>';
+}
+
+function renderDone() {
+    clearStocktakeDraft();
+    const adjusted = Object.values(_changes).filter(function(c){ return c.qty; }).length;
+    const gone     = Object.values(_changes).filter(function(c){ return c.gone; }).length;
+    const good     = _items.length - adjusted - gone;
+
+    document.getElementById('audit-root').innerHTML =
+        '<div style="text-align:center;padding:20px 0 16px;">'
+        + '<div style="font-size:48px;margin-bottom:10px;">&#10003;</div>'
+        + '<h2 style="margin:0 0 4px;color:#6dbf5a;">' + escHtml(_category) + ' checked</h2>'
+        + '<p style="font-size:13px;color:#7a8f78;margin:0;">Well done &mdash; your stockpile data is now up to date for this section.</p>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">'
+        + '<div style="background:#1a2e1a;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#6dbf5a;">' + good + '</div><div style="font-size:11px;color:#7a8f78;">Confirmed</div></div>'
+        + '<div style="background:#2e1a0a;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#d4a017;">' + adjusted + '</div><div style="font-size:11px;color:#7a8f78;">Updated</div></div>'
+        + '<div style="background:#2e1a1a;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#c0392b;">' + gone + '</div><div style="font-size:11px;color:#7a8f78;">Removed</div></div>'
+        + '</div>'
+        + '<div style="background:#0f1a0f;border:1px solid #1a2a1a;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#7a8f78;line-height:1.7;">'
+        + 'Any quantity changes and removed items have already been applied to your stockpile. '
+        + 'Tap <strong style="color:#6dbf5a;">Save &amp; finish</strong> to record today as your last audit date — this resets the reminder clock for ' + escHtml(_category) + '.'
+        + '</div>'
+        + '<button class="audit-btn" style="background:#3a6a2a;color:#fff;margin-bottom:10px;" onclick="saveAndFinish()">Save &amp; finish</button>'
+        + '<a href="audit.html" style="display:block;text-align:center;padding:12px;color:#6dbf5a;font-size:13px;text-decoration:none;">Audit another section &#8594;</a>';
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+function showPicker() { renderPicker(); }
+
+function selectCategory(cat) {
+    _category = cat;
+    renderFrequency(cat);
+}
+
+function setFrequency(f) {
+    const schedule = loadStocktakeSchedule();
+    if (!schedule[_category]) schedule[_category] = {};
+    schedule[_category].frequency = f;
+    saveStocktakeSchedule(schedule);
+    document.querySelectorAll('.freq-pill').forEach(function(el){
+        el.classList.toggle('active', el.textContent.trim() === ({30:'Monthly',60:'Every 2 months',90:'Quarterly',180:'Every 6 months'})[f]);
+    });
+}
+
+function startAudit() {
+    const all = loadStockpile();
+    _items = all.filter(function(i){ return (i.category||'Other') === _category; });
+    if (_items.length === 0) { alert('No items in this category.'); return; }
+    _idx = 0;
+    _changes = {};
+    _addedNames = [];
+    _pendingAdj = false;
+    _startDate = today();
+    saveDraft();
+    renderFlow();
+}
+
+function resumeDraft() {
+    const draft = loadStocktakeDraft();
+    if (!draft) { showPicker(); return; }
+    _category   = draft.category;
+    _items      = draft.items;
+    _idx        = draft.currentIndex;
+    _changes    = draft.changes || {};
+    _addedNames = draft.addedNames || [];
+    _startDate  = draft.startDate || today();
+    _pendingAdj = false;
+    renderFlow();
+}
+
+function discardDraft() {
+    if (!confirm('Discard this audit in progress?')) return;
+    clearStocktakeDraft();
+    renderLanding();
+}
+
+function saveDraft() {
+    saveStocktakeDraft({
+        category:     _category,
+        items:        _items,
+        currentIndex: _idx,
+        changes:      _changes,
+        addedNames:   _addedNames,
+        startDate:    _startDate,
+    });
+}
+
+function markGood() {
+    _pendingAdj = false;
+    nextItem();
+}
+
+function markAdjust() {
+    if (_pendingAdj) {
+        // already open — just scroll to it
+        var el = document.getElementById('adj-qty');
+        if (el) el.focus();
+        return;
+    }
+    _pendingAdj = true;
+    renderFlow();
+    setTimeout(function(){ var el=document.getElementById('adj-qty'); if(el) el.focus(); }, 100);
+}
+
+function confirmAdj() {
+    var el = document.getElementById('adj-qty');
+    var val = el ? el.value.trim() : '';
+    if (!val) return;
+    var item = _items[_idx];
+    _changes[item.id] = { qty: val };
+    _pendingAdj = false;
+
+    // Apply change to stockpile
+    var stock = loadStockpile();
+    var si = stock.findIndex(function(s){ return s.id === item.id; });
+    if (si !== -1) { stock[si].quantity = val; saveStockpile(stock); }
+
+    nextItem();
+}
+
+function markGone() {
+    var item = _items[_idx];
+    _changes[item.id] = { gone: true };
+
+    // Remove from stockpile
+    var stock = loadStockpile();
+    saveStockpile(stock.filter(function(s){ return s.id !== item.id; }));
+
+    nextItem();
+}
+
+function skipItem() { nextItem(); }
+
+function nextItem() {
+    _idx++;
+    saveDraft();
+    _pendingAdj = false;
+    if (_idx >= _items.length) { renderDone(); } else { renderFlow(); }
+}
+
+function saveAndFinish() {
+    // Record audit in schedule
+    const schedule = loadStocktakeSchedule();
+    if (!schedule[_category]) schedule[_category] = { frequency: 90 };
+    schedule[_category].lastDate = today();
+    saveStocktakeSchedule(schedule);
+
+    // Log the result
+    const adjusted = Object.values(_changes).filter(function(c){ return c.qty; }).length;
+    const gone     = Object.values(_changes).filter(function(c){ return c.gone; }).length;
+    logStocktakeResult({
+        category:      _category,
+        date:          today(),
+        itemsChecked:  _items.length,
+        itemsAdjusted: adjusted,
+        itemsRemoved:  gone,
+    });
+
+    clearStocktakeDraft();
+    window.location.href = 'stockpile.html';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+function init() {
+    renderNav('stockpile');
+    const draft = loadStocktakeDraft();
+    renderLanding();
+}
+
+init();
+</script>
+</body>
+</html>

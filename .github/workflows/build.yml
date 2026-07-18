@@ -1,0 +1,80 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --win
+
+      - name: Deploy to rpn-website
+        uses: actions/checkout@v4
+        with:
+          repository: Scribbz89/rpn-website
+          path: rpn-website
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Push Windows exe
+        shell: bash
+        run: |
+          mkdir -p rpn-website/exe
+          cp "dist/RPN Field Brain 1.0.0.exe" rpn-website/exe/rpn-field-brain.exe
+          cd rpn-website
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add exe/rpn-field-brain.exe
+          git diff --staged --quiet || git commit -m "Update Windows build [skip ci]"
+          git push
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Linux
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --linux
+
+      - name: Deploy to rpn-website
+        uses: actions/checkout@v4
+        with:
+          repository: Scribbz89/rpn-website
+          path: rpn-website
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Push Linux AppImage
+        run: |
+          mkdir -p rpn-website/linux
+          cp "dist/RPN Field Brain-1.0.0.AppImage" rpn-website/linux/rpn-field-brain.AppImage
+          cd rpn-website
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add linux/rpn-field-brain.AppImage
+          git diff --staged --quiet || git commit -m "Update Linux build [skip ci]"
+          git push

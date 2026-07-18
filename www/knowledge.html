@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Knowledge</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="home.html" style="color:#6dbf5a;font-size:13px;">&#8592; Home</a></div>
+    <h2>Knowledge Library</h2>
+    <p class="form-hint">Offline reference guides. All content is stored on-device — no internet required.</p>
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="Search articles..." oninput="filterCards(this.value)"></div>
+    <div id="categoryBlocks"><p class="empty">Loading...</p></div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script>
+let _articles = [];
+
+function init() {
+    renderNav('knowledge');
+    loadJSON('data/knowledge.json').then(data => {
+        _articles = Array.isArray(data) ? data : Object.values(data);
+        renderAll(_articles);
+    }).catch(() => {
+        document.getElementById('categoryBlocks').innerHTML = '<p class="empty">Could not load knowledge library.</p>';
+    });
+}
+
+function renderAll(articles) {
+    // Group by category
+    const groups = {};
+    articles.forEach(a => {
+        const cat = a.category || 'General';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(a);
+    });
+
+    let html = '';
+    for (const [cat, arts] of Object.entries(groups)) {
+        const cards = arts.map(a => `
+            <a href="knowledge-article.html?id=${encodeURIComponent(a.id)}" class="knowledge-card" data-text="${escHtml((a.title+' '+a.summary+' '+cat).toLowerCase())}">
+                ${a.medical ? '<span class="knowledge-badge">Medical</span>' : ''}
+                <span class="knowledge-title">${escHtml(a.title)}</span>
+                <span class="knowledge-summary">${escHtml(a.summary || '')}</span>
+            </a>`).join('');
+        html += `<div class="category-block"><h3>${escHtml(cat)}</h3><div class="knowledge-grid">${cards}</div></div>`;
+    }
+    document.getElementById('categoryBlocks').innerHTML = html || '<p class="empty">No articles found.</p>';
+}
+
+function filterCards(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.knowledge-card').forEach(card => {
+        card.style.display = card.dataset.text.includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('.category-block').forEach(block => {
+        const visible = [...block.querySelectorAll('.knowledge-card')].some(c => c.style.display !== 'none');
+        block.style.display = visible ? '' : 'none';
+    });
+}
+
+init();
+</script>
+</body>
+</html>
+

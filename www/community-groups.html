@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — Groups</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <div style="margin-bottom:12px;"><a href="community-auth.html" style="color:#6dbf5a;font-size:13px;">&#8592; Community</a></div>
+    <h2>Groups</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Create groups to share pins with specific people. Members must accept an invite to join.</p>
+
+    <!-- Pending invites banner -->
+    <div id="inviteBanner" style="display:none;background:#1a2a1a;border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin-bottom:16px;cursor:pointer;" onclick="window.location.href='community-invites.html'">
+        <span style="color:var(--accent);font-weight:600;">📬 You have pending group invites</span>
+        <span style="color:var(--text-muted);font-size:13px;"> — tap to view</span>
+    </div>
+
+    <!-- Create group -->
+    <div class="add-form" style="max-width:520px;margin-bottom:20px;">
+        <h3>Create New Group</h3>
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="groupName" placeholder="Group name..." style="flex:1;">
+            <button class="btn-primary" onclick="createGroup()" id="createBtn">Create</button>
+        </div>
+        <div id="createMsg" style="display:none;font-size:13px;margin-top:8px;"></div>
+    </div>
+
+    <!-- My groups -->
+    <div id="groupsList"></div>
+
+    <!-- Invite modal -->
+    <div id="inviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;padding:20px;overflow-y:auto;">
+        <div style="background:#1a2218;border:1px solid var(--border);border-radius:8px;max-width:480px;margin:40px auto;padding:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;">Invite to <span id="inviteGroupName"></span></h3>
+                <button onclick="closeInviteModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <input type="text" id="inviteSearch" placeholder="Search contacts..." style="flex:1;" onkeydown="if(event.key==='Enter') searchContacts()">
+                <button class="btn-secondary" onclick="searchContacts()">Search</button>
+            </div>
+            <div id="inviteResults"></div>
+        </div>
+    </div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+let groups = [];
+let currentGroupId = null;
+let myContacts = [];
+
+async function init() {
+    renderNav('more');
+    registerPushNotifications();
+    if (!communityToken()) { window.location.href = 'community-auth.html'; return; }
+    await Promise.all([loadGroups(), loadInviteBanner(), loadContacts()]);
+}
+
+async function loadContacts() {
+    try { myContacts = await communityGetContacts(); } catch(e) { myContacts = []; }
+}
+
+async function loadInviteBanner() {
+    try {
+        const invites = await communityGetInvites();
+        if (invites.length) document.getElementById('inviteBanner').style.display = '';
+    } catch(e) {}
+}
+
+async function loadGroups() {
+    try {
+        groups = await communityGetGroups();
+        renderGroups();
+    } catch(e) {
+        document.getElementById('groupsList').innerHTML = '<p style="color:var(--red);">Could not load groups.</p>';
+    }
+}
+
+function renderGroups() {
+    const el = document.getElementById('groupsList');
+    if (!groups.length) {
+        el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No groups yet. Create one above.</p>';
+        return;
+    }
+    const me = communityUser();
+    el.innerHTML = groups.map(g => {
+        const isOwner = me && g.owner_id === me.id;
+        const accepted = g.members.filter(m => m.status === 'accepted');
+        const pending  = g.members.filter(m => m.status === 'pending');
+        return `<div class="add-form" style="max-width:520px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div>
+                    <div style="font-size:17px;font-weight:700;color:var(--text-primary);">${escHtml(g.name)}</div>
+                    <div style="font-size:12px;color:var(--text-muted);">${accepted.length + 1} member${accepted.length !== 0 ? 's' : ''} · ${pending.length} pending</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    ${isOwner ? `<button onclick="openInviteModal(${g.id}, '${escHtml(g.name)}')" style="background:var(--accent);border:none;color:#000;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;">+ Invite</button>` : ''}
+                    ${isOwner ? `<button onclick="deleteGroup(${g.id})" style="background:var(--red);border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Delete</button>` : `<button onclick="leaveGroup(${g.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">Leave</button>`}
+                </div>
+            </div>
+            <div>
+                ${accepted.map(m => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+                        <span style="font-size:13px;color:var(--text-primary);">${escHtml(m.name)} <span style="color:var(--accent);font-size:11px;">${m.rpn_callsign || m.callsign || ''}</span></span>
+                        ${isOwner ? `<button onclick="removeMember(${g.id}, ${m.member_id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>` : ''}
+                    </div>`).join('')}
+                ${pending.map(m => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+                        <span style="font-size:13px;color:var(--text-muted);">${escHtml(m.name)} <span style="font-size:11px;color:#d4a017;">⏳ pending</span></span>
+                        ${isOwner ? `<button onclick="removeMember(${g.id}, ${m.member_id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>` : ''}
+                    </div>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function createGroup() {
+    const name = document.getElementById('groupName').value.trim();
+    if (!name) return;
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true; btn.textContent = '...';
+    try {
+        await communityCreateGroup(name);
+        document.getElementById('groupName').value = '';
+        await loadGroups();
+    } catch(e) {
+        const msg = document.getElementById('createMsg');
+        msg.style.display = ''; msg.style.color = 'var(--red)'; msg.textContent = e.message;
+    } finally {
+        btn.disabled = false; btn.textContent = 'Create';
+    }
+}
+
+async function deleteGroup(groupId) {
+    if (!confirm('Delete this group? All group pins will become private.')) return;
+    try { await communityDeleteGroup(groupId); await loadGroups(); }
+    catch(e) { alert(e.message); }
+}
+
+async function leaveGroup(groupId) {
+    const me = communityUser();
+    if (!confirm('Leave this group?')) return;
+    try { await communityRemoveFromGroup(groupId, me.id); await loadGroups(); }
+    catch(e) { alert(e.message); }
+}
+
+async function removeMember(groupId, memberId) {
+    if (!confirm('Remove this member?')) return;
+    try { await communityRemoveFromGroup(groupId, memberId); await loadGroups(); }
+    catch(e) { alert(e.message); }
+}
+
+function openInviteModal(groupId, groupName) {
+    currentGroupId = groupId;
+    document.getElementById('inviteGroupName').textContent = groupName;
+    document.getElementById('inviteResults').innerHTML = '';
+    document.getElementById('inviteSearch').value = '';
+    document.getElementById('inviteModal').style.display = '';
+}
+
+function closeInviteModal() {
+    document.getElementById('inviteModal').style.display = 'none';
+    currentGroupId = null;
+}
+
+async function searchContacts() {
+    const q = document.getElementById('inviteSearch').value.trim();
+    const group = groups.find(g => g.id === currentGroupId);
+    const alreadyIn = group ? group.members.map(m => m.member_id) : [];
+
+    let results = myContacts;
+    if (q) results = myContacts.filter(c =>
+        c.name.toLowerCase().includes(q.toLowerCase()) ||
+        (c.callsign || '').toLowerCase().includes(q.toLowerCase()) ||
+        (c.rpn_callsign || '').toLowerCase().includes(q.toLowerCase())
+    );
+
+    const el = document.getElementById('inviteResults');
+    if (!results.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">No contacts found. Add contacts first.</p>'; return; }
+    el.innerHTML = results.map(c => {
+        const inGroup = alreadyIn.includes(c.contact_id);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+                <div style="font-weight:600;color:var(--text-primary);">${escHtml(c.name)}</div>
+                ${[c.rpn_callsign,c.callsign].filter(Boolean).length ? `<div style="color:var(--accent);font-size:12px;">${escHtml([c.rpn_callsign,c.callsign].filter(Boolean).join(' / '))}</div>` : ''}
+            </div>
+            ${inGroup
+                ? `<span style="color:var(--text-muted);font-size:12px;">Already in group</span>`
+                : `<button onclick="inviteMember(${c.contact_id})" style="background:var(--accent);border:none;color:#000;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;">Invite</button>`
+            }
+        </div>`;
+    }).join('');
+}
+
+async function inviteMember(memberId) {
+    try {
+        await communityInviteToGroup(currentGroupId, memberId);
+        await loadGroups();
+        searchContacts();
+    } catch(e) { alert(e.message); }
+}
+
+init();
+</script>
+</body>
+</html>
+

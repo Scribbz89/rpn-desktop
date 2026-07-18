@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPN Field Brain — More</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="nav-root"></div>
+<main>
+    <h2>More</h2>
+
+    <div class="home-grid" style="margin-bottom:30px;">
+        <a href="drills.html" class="home-card">
+            <span class="home-card-icon">&#9654;</span>
+            <span class="home-card-title">Drills</span>
+            <span class="home-card-desc">Run and track preparedness drills</span>
+        </a>
+        <a href="legal.html" class="home-card">
+            <span class="home-card-icon">&#9878;</span>
+            <span class="home-card-title">Legal &amp; Disclaimer</span>
+            <span class="home-card-desc">Terms, medical disclaimer, privacy</span>
+        </a>
+        <a href="guide.html" class="home-card">
+            <span class="home-card-icon">&#9432;</span>
+            <span class="home-card-title">How to Use</span>
+            <span class="home-card-desc">Full guide to using Field Brain</span>
+        </a>
+        <a href="household.html" class="home-card">
+            <span class="home-card-icon">&#9786;</span>
+            <span class="home-card-title">Household</span>
+            <span class="home-card-desc">People, calories, water calculations</span>
+        </a>
+        <a href="medications.html" class="home-card">
+            <span class="home-card-icon">&#10010;</span>
+            <span class="home-card-title">Medications</span>
+            <span class="home-card-desc">Track prescriptions &amp; supply days</span>
+        </a>
+        <a href="radio.html" class="home-card">
+            <span class="home-card-icon">~</span>
+            <span class="home-card-title">Radio Notebook</span>
+            <span class="home-card-desc">Frequencies, repeaters, contacts, nets</span>
+        </a>
+        <a href="mesh.html" class="home-card">
+            <span class="home-card-icon">*</span>
+            <span class="home-card-title">MeshCore Network</span>
+            <span class="home-card-desc">MeshCore nodes, channels, contacts</span>
+        </a>
+        <div class="home-card" style="cursor:pointer;" onclick="doExport()">
+            <span class="home-card-icon">&#8659;</span>
+            <span class="home-card-title">Export Backup</span>
+            <span class="home-card-desc">Download all your data as JSON</span>
+        </div>
+        <a href="noticeboard.html" class="home-card" style="position:relative;">
+            <span class="home-card-icon">&#128250;</span>
+            <span class="home-card-title">Noticeboard</span>
+            <span class="home-card-desc">Announcements from the RPN team</span>
+            <span id="noticeboardBadge" style="display:none;position:absolute;top:8px;right:8px;background:#c0392b;color:#fff;border-radius:50%;width:10px;height:10px;"></span>
+        </a>
+        <a href="community-auth.html" class="home-card">
+            <span class="home-card-icon">&#127757;</span>
+            <span class="home-card-title">RPN Community</span>
+            <span class="home-card-desc">Member map, profiles &amp; radio directory</span>
+        </a>
+        <a href="admin.html" class="home-card" id="adminCard" style="display:none;border-color:#7b68ee44;">
+            <span class="home-card-icon">&#9881;</span>
+            <span class="home-card-title" style="color:#7b68ee;">Admin Panel</span>
+            <span class="home-card-desc">Issue RPN callsigns, manage members</span>
+        </a>
+        <a href="about.html" class="home-card">
+            <span class="home-card-icon">&#9432;</span>
+            <span class="home-card-title">About RPN</span>
+            <span class="home-card-desc">Who we are, built by Lewis Scrivens</span>
+        </a>
+        <div class="home-card" style="cursor:pointer;" onclick="replayOnboarding()">
+            <span class="home-card-icon">&#9654;</span>
+            <span class="home-card-title">Replay Tour</span>
+            <span class="home-card-desc">Restart the welcome &amp; app tour</span>
+        </div>
+    </div>
+
+    <div style="font-size:12px;color:#4a5e48;line-height:1.6;margin-bottom:14px;padding:10px 12px;background:#0d170d;border-radius:6px;border:1px solid #1a2a1a;max-width:480px;">
+        <strong style="color:#556655;">Back up regularly</strong> — all your data is stored locally on this device. If you uninstall the app or switch phones, your data will be lost unless you export a backup first. Save it to cloud storage (Google Drive, iCloud) for safekeeping.
+    </div>
+
+    <div class="add-form" style="max-width:480px;">
+        <h3>Replay Setup &amp; Tour</h3>
+        <p class="form-hint">Resets the welcome screens and app tour so you can walk through them again. <strong>Your stockpile, checklists, and all other data are not affected.</strong></p>
+        <button class="btn-cancel" onclick="replayOnboarding()">Replay setup &amp; tour</button>
+    </div>
+
+    <div class="add-form" style="max-width:480px;">
+        <h3>Restore from Backup</h3>
+        <p class="form-hint">Select a previously exported <code>rpn-field-brain-backup.json</code> file. <strong>This will overwrite all current data</strong> — make sure you want to replace everything before restoring.</p>
+        <div class="form-row">
+            <input type="file" id="backupFile" accept=".json" style="flex:1;">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn-primary" onclick="doImport()">Restore Backup</button>
+        </div>
+        <div id="importMsg" style="display:none;margin-top:12px;font-size:13px;"></div>
+    </div>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/drill-overlay.js"></script><script src="js/nav.js"></script><script src="js/help.js"></script>
+<script src="js/community.js"></script>
+<script src="js/push.js"></script>
+<script>
+async function init() {
+    renderNav('more');
+    registerPushNotifications();
+    const user = communityUser();
+    if (user && (user.is_admin || user.is_manager)) {
+        document.getElementById('adminCard').style.display = '';
+    }
+    // Check for unread announcements
+    try {
+        const announcements = await communityGetAnnouncementsPublic();
+        if (announcements.length) {
+            const lastSeen = parseInt(localStorage.getItem('rpn_last_seen_ann') || '0');
+            if (announcements[0].id > lastSeen) {
+                document.getElementById('noticeboardBadge').style.display = '';
+            }
+        }
+    } catch(e) {}
+}
+
+function doExport() {
+    const data = exportData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'rpn-field-brain-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function doImport() {
+    const file = document.getElementById('backupFile').files[0];
+    if (!file) { alert('Please select a backup file.'); return; }
+    if (!confirm('This will replace all your current data with the backup. Are you sure?')) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            importData(data);
+            const msg = document.getElementById('importMsg');
+            msg.style.display = 'block';
+            msg.style.color = '#6dbf5a';
+            msg.textContent = '✓ Backup restored successfully. Redirecting to home...';
+            setTimeout(() => window.location.href = 'home.html', 1800);
+        } catch(err) {
+            const msg = document.getElementById('importMsg');
+            msg.style.display = 'block';
+            msg.style.color = '#c0392b';
+            msg.textContent = 'Error: could not read backup file. Make sure it is a valid rpn-field-brain-backup.json.';
+        }
+    };
+    reader.readAsText(file);
+}
+
+function replayOnboarding() {
+    ['rpn_welcomed','rpn_terms_accepted','rpn_assessment_done','rpn_signup_prompted'].forEach(function(k) {
+        localStorage.removeItem(k);
+    });
+    window.location.href = 'home.html';
+}
+
+init();
+</script>
+</body>
+</html>
+
