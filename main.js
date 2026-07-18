@@ -19,6 +19,18 @@ function createWindow() {
 
     win.loadFile(path.join(__dirname, 'www', 'home.html'));
 
+    win.webContents.on('did-finish-load', () => {
+        // Inject error handler to catch JS crashes and reload
+        win.webContents.executeJavaScript(`
+            window.addEventListener('error', function(e) {
+                console.error('Page error:', e.message);
+            });
+            window.addEventListener('unhandledrejection', function(e) {
+                console.error('Unhandled promise rejection:', e.reason);
+            });
+        `);
+    });
+
     // Open external links in the system browser
     win.webContents.setWindowOpenHandler(({ url }) => {
         if (url.startsWith('http://') || url.startsWith('https://')) {
