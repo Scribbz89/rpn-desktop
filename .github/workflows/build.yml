@@ -25,7 +25,7 @@ jobs:
           GH_TOKEN: ""
         run: npx electron-builder --win --publish never
 
-      - name: Deploy to rpn-website
+      - name: Deploy Windows exe to rpn-website
         uses: actions/checkout@v4
         with:
           repository: Scribbz89/rpn-website
@@ -63,20 +63,11 @@ jobs:
           GH_TOKEN: ""
         run: npx electron-builder --linux --publish never
 
-      - name: Deploy to rpn-website
-        uses: actions/checkout@v4
+      - name: Upload Linux AppImage as release asset
+        uses: softprops/action-gh-release@v2
         with:
-          repository: Scribbz89/rpn-website
-          path: rpn-website
+          tag_name: latest-build
+          name: Latest Build
+          files: dist/RPN Field Brain-1.0.0.AppImage
           token: ${{ secrets.DEPLOY_TOKEN }}
-
-      - name: Push Linux AppImage
-        run: |
-          mkdir -p rpn-website/linux
-          cp "dist/RPN Field Brain-1.0.0.AppImage" rpn-website/linux/rpn-field-brain.AppImage
-          cd rpn-website
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add linux/rpn-field-brain.AppImage
-          git diff --staged --quiet || git commit -m "Update Linux build [skip ci]"
-          git push
+          repository: Scribbz89/rpn-desktop
