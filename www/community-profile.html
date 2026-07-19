@@ -77,6 +77,33 @@
             <a href="community-auth.html" class="btn-secondary" style="text-decoration:none;">Back</a>
         </div>
     </div>
+
+    <div class="add-form" style="max-width:520px;margin-top:24px;">
+        <h3 style="margin-bottom:16px;font-size:16px;">Change Password</h3>
+        <div class="form-row">
+            <label>Current Password</label>
+            <div style="position:relative;">
+                <input type="password" id="currentPw" placeholder="Your current password" style="padding-right:44px;width:100%;box-sizing:border-box;">
+                <button type="button" onclick="togglePw('currentPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0;">&#128065;</button>
+            </div>
+        </div>
+        <div class="form-row">
+            <label>New Password</label>
+            <div style="position:relative;">
+                <input type="password" id="newPw" placeholder="New password (min 6 characters)" style="padding-right:44px;width:100%;box-sizing:border-box;">
+                <button type="button" onclick="togglePw('newPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0;">&#128065;</button>
+            </div>
+        </div>
+        <div class="form-row">
+            <label>Confirm New Password</label>
+            <div style="position:relative;">
+                <input type="password" id="confirmPw" placeholder="Repeat new password" style="padding-right:44px;width:100%;box-sizing:border-box;">
+                <button type="button" onclick="togglePw('confirmPw',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0;">&#128065;</button>
+            </div>
+        </div>
+        <div id="pwMsg" style="display:none;font-size:13px;margin-top:8px;"></div>
+        <button class="btn-primary" onclick="doChangePassword()" id="pwBtn" style="margin-top:8px;">Change Password</button>
+    </div>
 </main>
 
 <script src="js/storage.js"></script>
@@ -198,6 +225,51 @@ async function doSave() {
     } finally {
         btn.textContent = 'Save Profile'; btn.disabled = false;
     }
+}
+
+function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.innerHTML = show ? '&#128064;' : '&#128065;';
+}
+
+async function doChangePassword() {
+    const current = document.getElementById('currentPw').value;
+    const newPw   = document.getElementById('newPw').value;
+    const confirm = document.getElementById('confirmPw').value;
+    const msg     = document.getElementById('pwMsg');
+    const btn     = document.getElementById('pwBtn');
+
+    msg.style.display = 'none';
+    if (!current || !newPw || !confirm) { showMsg(msg, 'All fields are required.', false); return; }
+    if (newPw.length < 6) { showMsg(msg, 'New password must be at least 6 characters.', false); return; }
+    if (newPw !== confirm) { showMsg(msg, 'New passwords do not match.', false); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+        const res = await fetch(COMMUNITY_API + '/me/password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + communityToken() },
+            body: JSON.stringify({ current_password: current, new_password: newPw }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to change password');
+        showMsg(msg, '✓ Password changed successfully.', true);
+        document.getElementById('currentPw').value = '';
+        document.getElementById('newPw').value = '';
+        document.getElementById('confirmPw').value = '';
+    } catch(e) {
+        showMsg(msg, e.message, false);
+    } finally {
+        btn.disabled = false; btn.textContent = 'Change Password';
+    }
+}
+
+function showMsg(el, text, success) {
+    el.textContent = text;
+    el.style.color = success ? 'var(--accent)' : 'var(--red)';
+    el.style.display = '';
 }
 
 init();
