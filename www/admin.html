@@ -146,6 +146,7 @@ function renderMembers(members) {
                 ${currentUserIsAdmin ? `
                 <button class="action-btn" onclick="toggleManager(${m.id})">${m.is_manager ? 'Revoke Manager' : 'Make Manager'}</button>
                 <button class="action-btn" onclick="toggleAdmin(${m.id})">${m.is_admin ? 'Revoke Admin' : 'Make Admin'}</button>
+                <button class="action-btn" style="color:#e07070;border-color:#e07070;" onclick="deleteMember(${m.id}, '${escHtml(m.name)}')">Delete Member</button>
                 ` : ''}
             </div>
         </div>`;
@@ -241,6 +242,21 @@ async function resetPassword(memberId) {
     try {
         const data = await communityAdminResetPassword(memberId);
         alert(`Temporary password for ${data.name} (${data.email}):\n\n${data.temp_password}\n\nSend this to them directly — they should change it after logging in.`);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteMember(memberId, name) {
+    if (!confirm(`PERMANENTLY DELETE ${name}?\n\nThis will remove their account, pins, logs and all data. This cannot be undone.`)) return;
+    if (!confirm(`Are you sure? This is irreversible.`)) return;
+    try {
+        const token = localStorage.getItem('rpn_community_token');
+        const res = await fetch(COMMUNITY_API + '/admin/members/' + memberId, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Failed to delete member');
+        alert(name + ' has been deleted.');
+        loadMembers(document.getElementById('searchInput').value.trim());
     } catch(e) { alert('Error: ' + e.message); }
 }
 
