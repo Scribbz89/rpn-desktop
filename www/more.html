@@ -127,14 +127,39 @@ async function init() {
     } catch(e) {}
 }
 
-function doExport() {
+async function doExport() {
     const data = exportData();
     const json = JSON.stringify(data, null, 2);
+    const filename = 'rpn-field-brain-backup.json';
+
+    // Native Android/iOS: <a download> on a blob: URL is silently ignored by
+    // the OS WebView, so write to the app cache and hand off to the native
+    // share sheet instead.
+    if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+        try {
+            const { Filesystem, Directory } = Capacitor.Plugins;
+            const result = await Filesystem.writeFile({
+                path: filename,
+                data: json,
+                directory: Directory.Cache,
+                encoding: 'utf8',
+            });
+            await Capacitor.Plugins.Share.share({
+                title: 'RPN Field Brain Backup',
+                url: result.uri,
+                dialogTitle: 'Save or share your backup',
+            });
+        } catch (e) {
+            alert('Could not create backup: ' + e.message);
+        }
+        return;
+    }
+
     const blob = new Blob([json], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = 'rpn-field-brain-backup.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
