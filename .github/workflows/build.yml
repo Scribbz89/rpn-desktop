@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p rpn-website/exe
-          cp "dist/RPN Field Brain 1.0.0.exe" rpn-website/exe/rpn-field-brain.exe
+          cp dist/rpn-field-brain.exe rpn-website/exe/rpn-field-brain.exe
           cd rpn-website
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -68,6 +68,6 @@ jobs:
         with:
           tag_name: latest-build
           name: Latest Build
-          files: dist/RPN Field Brain-1.0.0.AppImage
+          files: dist/rpn-field-brain.AppImage
           token: ${{ secrets.DEPLOY_TOKEN }}
           repository: Scribbz89/rpn-desktop

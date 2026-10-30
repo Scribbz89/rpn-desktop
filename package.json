@@ -29,13 +29,17 @@
         "AppImage"
       ],
       "icon": "www/img/rpn-logo.png",
-      "category": "Utility"
+      "category": "Utility",
+      "artifactName": "rpn-field-brain.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "www/img/rpn-logo.png",
       "installerHeaderIcon": "www/img/rpn-logo.png"
+    },
+    "portable": {
+      "artifactName": "rpn-field-brain.${ext}"
     }
   },
   "devDependencies": {
